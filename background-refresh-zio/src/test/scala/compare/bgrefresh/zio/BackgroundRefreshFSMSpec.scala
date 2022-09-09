@@ -32,23 +32,8 @@ class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually 
 
   it("auto refreshes the list") {
     Unsafe.unsafe { implicit unsafe =>
-      val dummyError = new Exception("dummy")
-      val counter: Ref[Int] = runtime.unsafe.run(Ref.make(0)).getOrThrow()
-      val ref = runtime.unsafe.run(Ref.make(List.empty[Int])).getOrThrow()
-
-      implicit val bgRefreshInterpreterWithError: BackgroundRefreshInterpreter = new BackgroundRefreshInterpreter {
-        override def refresh(state: List[Int]): Task[List[Int]] = {
-          for {
-            counterValue <- counter.getAndUpdate(_ + 1)
-            result <- if (counterValue <= 2) {
-              ZIO.fail(dummyError)
-            } else {
-              super.refresh(state)
-            }
-          } yield result
-        }
-      }
-      val fsm = new BackgroundRefreshFSM(ref)
+      val f = testFixture(introduceFailure = true)
+      import f._
 
       forkTask(fsm.refreshContinually(200.millis)) {
         eventually {
@@ -59,8 +44,24 @@ class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually 
     }
   }
 
-  def testFixture(initialValue: List[Int] = List.empty)(implicit unsafe: Unsafe) = new {
-    implicit val bgRefreshInterpreter = new BackgroundRefreshInterpreter
+  def testFixture(introduceFailure: Boolean = false, initialValue: List[Int] = List.empty)(implicit unsafe: Unsafe) = new {
+    val dummyError = new Exception("dummy")
+    val counter: Ref[Int] = runtime.unsafe.run(Ref.make(0)).getOrThrow()
+
+    val bgRefreshWithFailure = new BackgroundRefreshInterpreter {
+      override def refresh(state: List[Int]): Task[List[Int]] = {
+        for {
+          counterValue <- counter.getAndUpdate(_ + 1)
+          result <- if (counterValue <= 2) {
+            ZIO.fail(dummyError)
+          } else {
+            super.refresh(state)
+          }
+        } yield result
+      }
+    }
+    val bgRefreshWithSuccess = new BackgroundRefreshInterpreter
+    implicit val bgRefresh = if (introduceFailure) bgRefreshWithFailure else bgRefreshWithSuccess
     val ref = runtime.unsafe.run(Ref.make(initialValue)).getOrThrow()
     val fsm = new BackgroundRefreshFSM(ref)
   }
