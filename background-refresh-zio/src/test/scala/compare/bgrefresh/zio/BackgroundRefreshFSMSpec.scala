@@ -5,7 +5,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import zio.{ Fiber, Ref, Runtime, Schedule, Task, Unsafe }
+import zio.{ Fiber, Ref, Runtime, Schedule, Task, Unsafe, ZIO }
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
@@ -14,7 +14,6 @@ class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually 
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = 3.seconds)
 
   val runtime = Runtime.default
-  implicit val bgRefreshInterpreter = new BackgroundRefreshInterpreter
 
   it("refreshes the list when the tick is sent") {
     Unsafe.unsafe { implicit unsafe =>
@@ -33,19 +32,35 @@ class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually 
 
   it("auto refreshes the list") {
     Unsafe.unsafe { implicit unsafe =>
-      val f = testFixture()
-      import f._
+      val dummyError = new Exception("dummy")
+      val counter: Ref[Int] = runtime.unsafe.run(Ref.make(0)).getOrThrow()
+      val ref = runtime.unsafe.run(Ref.make(List.empty[Int])).getOrThrow()
 
-      forkTask(fsm.refreshContinually(500.millis)) {
+      implicit val bgRefreshInterpreterWithError: BackgroundRefreshInterpreter = new BackgroundRefreshInterpreter {
+        override def refresh(state: List[Int]): Task[List[Int]] = {
+          for {
+            counterValue <- counter.getAndUpdate(_ + 1)
+            result <- if (counterValue <= 2) {
+              ZIO.fail(dummyError)
+            } else {
+              super.refresh(state)
+            }
+          } yield result
+        }
+      }
+      val fsm = new BackgroundRefreshFSM(ref)
+
+      forkTask(fsm.refreshContinually(200.millis)) {
         eventually {
           val nextState = runtime.unsafe.run(fsm.getState()).getOrThrow()
-          nextState shouldBe List(0, 1, 2, 3, 4)
+          nextState shouldBe List(0, 1, 2)
         }
       }
     }
   }
 
   def testFixture(initialValue: List[Int] = List.empty)(implicit unsafe: Unsafe) = new {
+    implicit val bgRefreshInterpreter = new BackgroundRefreshInterpreter
     val ref = runtime.unsafe.run(Ref.make(initialValue)).getOrThrow()
     val fsm = new BackgroundRefreshFSM(ref)
   }

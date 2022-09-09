@@ -27,12 +27,10 @@ class BackgroundRefreshFSM(state: Ref[List[Int]])(implicit refreshInterpreter: B
   }
 
   def refreshContinually(interval: FiniteDuration): Task[Done] = {
-    val schedule = Schedule.spaced(zio.Duration(interval.toMillis, TimeUnit.MILLISECONDS))
+    val zioInterval = zio.Duration(interval.toMillis, TimeUnit.MILLISECONDS)
     refresh()
-      .catchNonFatalOrDie { e =>
-        ZIO.succeed(Done)
-      }
-      .repeat(schedule)
+      .retry(Schedule.exponential(zioInterval))
+      .repeat(Schedule.spaced(zioInterval))
       .map(_ => Done)
   }
 }
