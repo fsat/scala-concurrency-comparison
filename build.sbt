@@ -1,6 +1,8 @@
 import scalariform.formatter.preferences._
 
 lazy val Versions = new {
+  val akka = "2.6.20"
+  val zio = "2.0.2"
   val scalaTest = "3.2.13"
   val scalaVersion = "2.13.8"
 }
@@ -33,6 +35,9 @@ lazy val `background-refresh-akka-typed` = project
   .in(file("background-refresh-akka-typed"))
   .settings(Seq(
     libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor" % Versions.akka,
+      "com.typesafe.akka" %% "akka-actor-typed" % Versions.akka,
+      "com.typesafe.akka" %% "akka-stream" % Versions.akka,
       Libraries.scalaTest
     ),
     Test / parallelExecution := false
@@ -43,6 +48,8 @@ lazy val `background-refresh-zio` = project
   .in(file("background-refresh-zio"))
   .settings(Seq(
     libraryDependencies ++= Seq(
+      "dev.zio" %% "zio" % Versions.zio,
+      "dev.zio" %% "zio-streams" % Versions.zio,
       Libraries.scalaTest
     ),
     Test / parallelExecution := false
