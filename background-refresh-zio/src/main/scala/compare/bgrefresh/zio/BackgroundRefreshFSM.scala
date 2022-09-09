@@ -1,12 +1,15 @@
 package compare.bgrefresh.zio
 
 import compare.bgrefresh.zio.interpreter.BackgroundRefreshAlgebra
-import zio.{ Cause, Fiber, IO, Ref, Schedule, Task, UIO, ZIO }
+import zio.{ Cause, Fiber, IO, Runtime, Ref, Schedule, Task, UIO, ZIO }
+import zio.logging.backend.SLF4J
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 
 class BackgroundRefreshFSM(state: Ref[List[Int]])(implicit refreshInterpreter: BackgroundRefreshAlgebra[Task]) {
+  private val logger = Runtime.removeDefaultLoggers >>> SLF4J.slf4j
+
   def getState(): UIO[List[Int]] = state.get
 
   def refresh(): Task[Done] = {

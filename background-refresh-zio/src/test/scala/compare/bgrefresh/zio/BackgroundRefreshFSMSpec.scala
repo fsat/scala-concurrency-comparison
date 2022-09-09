@@ -5,7 +5,9 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import zio.{ Fiber, Ref, Runtime, Schedule, Task, Unsafe, ZIO }
+import zio.logging.LogFormat
+import zio.logging.backend.SLF4J
+import zio.{ Fiber, LogLevel, Ref, Runtime, Schedule, Task, Unsafe, ZIO }
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
@@ -13,7 +15,11 @@ import scala.concurrent.duration._
 class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually with BeforeAndAfterAll {
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = 3.seconds)
 
-  val runtime = Runtime.default
+  val slf4j = SLF4J.slf4j
+  val runtimeLayers = Runtime.removeDefaultLoggers ++ slf4j
+  val runtime = Unsafe.unsafe { implicit unsafe =>
+    Runtime.unsafe.fromLayer(runtimeLayers)
+  }
 
   it("refreshes the list when the tick is sent") {
     Unsafe.unsafe { implicit unsafe =>
