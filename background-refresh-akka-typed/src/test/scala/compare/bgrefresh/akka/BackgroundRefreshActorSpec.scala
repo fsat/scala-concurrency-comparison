@@ -16,6 +16,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BackgroundRefreshActorSpec extends AnyFunSpec with Matchers with Eventually with BeforeAndAfterAll with ScalaFutures {
+  override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = 3.seconds)
+
   implicit val timeout = Timeout(3.seconds)
   val actorSystem = ActorSystem()
   implicit val scheduler = actorSystem.toTyped.scheduler
@@ -48,7 +50,7 @@ class BackgroundRefreshActorSpec extends AnyFunSpec with Matchers with Eventuall
 
     eventually {
       val nextState = actor.ask(BackgroundRefreshActor.Message.GetStateRequest).futureValue
-      nextState.state shouldBe List(0)
+      nextState.state shouldBe List(0, 1)
     }
   }
 

@@ -1,7 +1,10 @@
 package compare.bgrefresh.zio
 
 import compare.bgrefresh.zio.interpreter.BackgroundRefreshAlgebra
-import zio.{ IO, Ref, Task, UIO, ZIO }
+import zio.{ Cause, Fiber, IO, Ref, Schedule, Task, UIO, ZIO }
+
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
 
 class BackgroundRefreshFSM(state: Ref[List[Int]])(implicit refreshInterpreter: BackgroundRefreshAlgebra[Task]) {
   def getState(): UIO[List[Int]] = state.get
@@ -17,7 +20,7 @@ class BackgroundRefreshFSM(state: Ref[List[Int]])(implicit refreshInterpreter: B
 
     attempt.catchNonFatalOrDie { e =>
       for {
-        _ <- ZIO.logError(s"Refreshing fail: ${e.getMessage}")
+        _ <- ZIO.logErrorCause(s"Refreshing fail: ${e.getMessage}", Cause.fail(e))
         result <- ZIO.fail(e)
       } yield result
     }
