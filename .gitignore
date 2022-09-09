@@ -29,3 +29,4 @@ build
 dist
 *egg-info
 data/
+.bsp/
