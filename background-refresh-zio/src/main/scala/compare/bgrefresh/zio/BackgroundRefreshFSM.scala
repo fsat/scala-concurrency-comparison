@@ -1,7 +1,8 @@
 package compare.bgrefresh.zio
 
 import compare.bgrefresh.zio.interpreter.BackgroundRefreshAlgebra
-import zio.{ Cause, Fiber, IO, Runtime, Ref, Schedule, Task, UIO, ZIO }
+import zio.{ Cause, Fiber, IO, Ref, Runtime, Schedule, Task, UIO, ZIO }
+import zio.logging.LogAnnotation
 import zio.logging.backend.SLF4J
 
 import java.util.concurrent.TimeUnit

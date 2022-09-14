@@ -4,7 +4,8 @@ lazy val Versions = new {
   val akka = "2.6.20"
   val zio = "2.0.2"
   val zioLogging = "2.1.0"
-  val logbackClassic = "1.2.11"
+  val logbackClassic = "1.2.8"
+  val logstashLogbackEncoder = "7.1"
   val scalaTest = "3.2.13"
   val scalaVersion = "2.13.8"
 }
@@ -56,6 +57,7 @@ lazy val `background-refresh-zio` = project
       "dev.zio" %% "zio-logging" % Versions.zioLogging,
       "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogging,
       "ch.qos.logback" % "logback-classic" % Versions.logbackClassic,
+      "net.logstash.logback" % "logstash-logback-encoder" % Versions.logstashLogbackEncoder,
       Libraries.scalaTest
     ),
     Test / parallelExecution := false
