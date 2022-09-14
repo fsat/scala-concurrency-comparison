@@ -54,6 +54,7 @@ lazy val `background-refresh-zio` = project
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % Versions.zio,
       "dev.zio" %% "zio-streams" % Versions.zio,
+      "dev.zio" %% "zio-json" % "0.3.0-RC11",
       "dev.zio" %% "zio-logging" % Versions.zioLogging,
       "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogging,
       "ch.qos.logback" % "logback-classic" % Versions.logbackClassic,

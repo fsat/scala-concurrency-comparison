@@ -20,6 +20,7 @@ class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually 
   val runtime = Unsafe.unsafe { implicit unsafe =>
     Runtime.unsafe.fromLayer(runtimeLayers)
   }
+  val mdc = Map("foo" -> "bla")
 
   it("refreshes the list when the tick is sent") {
     Unsafe.unsafe { implicit unsafe =>
@@ -29,7 +30,7 @@ class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually 
       val initialState = runtime.unsafe.run(fsm.getState()).getOrThrow()
       initialState.isEmpty shouldBe true
 
-      runtime.unsafe.run(fsm.refresh()).getOrThrow()
+      runtime.unsafe.run(fsm.refresh(mdc)).getOrThrow()
 
       val nextState = runtime.unsafe.run(fsm.getState()).getOrThrow()
       nextState shouldBe List(0)
@@ -41,7 +42,7 @@ class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually 
       val f = testFixture(introduceFailure = true)
       import f._
 
-      forkTask(fsm.refreshContinually(200.millis)) {
+      forkTask(fsm.refreshContinually(200.millis, mdc)) {
         eventually {
           val nextState = runtime.unsafe.run(fsm.getState()).getOrThrow()
           nextState shouldBe List(0, 1, 2)
