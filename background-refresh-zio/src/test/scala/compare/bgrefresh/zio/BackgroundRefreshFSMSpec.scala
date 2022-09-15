@@ -42,7 +42,7 @@ class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually 
       val f = testFixture(introduceFailure = true)
       import f._
 
-      forkTask(fsm.refreshContinually(200.millis, mdc)) {
+      forkTask(fsm.refreshContinually(200.millis, mdc ++ Map("auto" -> "true"))) {
         eventually {
           val nextState = runtime.unsafe.run(fsm.getState()).getOrThrow()
           nextState shouldBe List(0, 1, 2)
