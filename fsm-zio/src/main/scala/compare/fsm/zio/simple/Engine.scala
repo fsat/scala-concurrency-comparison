@@ -4,6 +4,7 @@ import compare.fsm.zio.simple.Engine.PendingMessage
 import zio.{ IO, Promise, Queue, Ref, Schedule, Task, UIO, Unsafe, ZIO }
 
 import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.{ DurationInt, FiniteDuration }
 
 object Engine {
   object PendingMessage {
@@ -16,13 +17,15 @@ object Engine {
 
   def create[State, MessageRequest, MessageResponse](
     state: State,
-    fsm: FSM[State, MessageRequest, MessageResponse]): Task[Engine[State, MessageRequest, MessageResponse]] = {
+    fsm: FSM[State, MessageRequest, MessageResponse],
+    mailboxSize: Int = 32000,
+    mailboxPollDuration: FiniteDuration = 10.millis): Task[Engine[State, MessageRequest, MessageResponse]] = {
     for {
-      mailbox <- Queue.unbounded[PendingMessage]
+      mailbox <- Queue.dropping[PendingMessage](mailboxSize)
       s <- Ref.make(state)
       engine = new Engine(mailbox, s, fsm)
       _ <- processMessage(engine)
-        .repeat(Schedule.spaced(zio.Duration(10, TimeUnit.MILLISECONDS)))
+        .repeat(Schedule.spaced(zio.Duration(mailboxPollDuration.toMillis, TimeUnit.MILLISECONDS)))
         // Must we fork on the global supervisor?
         .forkDaemon
     } yield engine
