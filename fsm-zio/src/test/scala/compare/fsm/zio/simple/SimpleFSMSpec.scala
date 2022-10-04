@@ -50,7 +50,6 @@ class SimpleFSMSpec extends AnyFunSpec with Matchers with Eventually with Before
   it("increments the counter") {
     Unsafe.unsafe { implicit unsafe =>
       val engine = runtime.unsafe.run(Engine.create(0, new CounterFSM)).getOrThrow()
-      runtime.unsafe.runToFuture(engine.startProcessingLoop().repeat(Schedule.spaced(zio.Duration(10, TimeUnit.MILLISECONDS)))).future
 
       val getStateResponse1 = runtime.unsafe.runToFuture(engine.ask(CounterFSM.Message.GetStateRequest())).future
       getStateResponse1.futureValue.get shouldBe CounterFSM.Message.GetStateResponse(0)
