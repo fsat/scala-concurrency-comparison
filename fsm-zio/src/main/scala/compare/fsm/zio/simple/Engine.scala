@@ -1,7 +1,7 @@
 package compare.fsm.zio.simple
 
 import compare.fsm.zio.simple.Engine.PendingMessage
-import zio.{ IO, Promise, Queue, Ref, Schedule, Task, UIO, Unsafe, ZIO }
+import zio.{ ExecutionStrategy, IO, Promise, Queue, Ref, Schedule, Scope, Task, UIO, Unsafe, ZIO }
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{ DurationInt, FiniteDuration }
@@ -24,10 +24,12 @@ object Engine {
       mailbox <- Queue.dropping[PendingMessage](mailboxSize)
       s <- Ref.make(state)
       engine = new Engine(mailbox, s, fsm)
+
+      // Run the queue processing loop in parallel in the background
+      parallelScope <- Scope.makeWith(ExecutionStrategy.Parallel)
       _ <- processMessage(engine)
         .repeat(Schedule.spaced(zio.Duration(mailboxPollDuration.toMillis, TimeUnit.MILLISECONDS)))
-        // Must we fork on the global supervisor?
-        .forkDaemon
+        .forkIn(parallelScope)
     } yield engine
   }
 
