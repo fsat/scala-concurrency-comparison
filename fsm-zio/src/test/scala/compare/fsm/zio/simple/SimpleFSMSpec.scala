@@ -7,8 +7,9 @@ import org.scalatest.concurrent.{ Eventually, ScalaFutures }
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import zio.logging.backend.SLF4J
-import zio.{ IO, Runtime, Task, Unsafe, ZIO }
+import zio.{ IO, Runtime, Schedule, Task, Unsafe, ZIO }
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 
 object SimpleFSMSpec {
@@ -49,16 +50,14 @@ class SimpleFSMSpec extends AnyFunSpec with Matchers with Eventually with Before
   it("increments the counter") {
     Unsafe.unsafe { implicit unsafe =>
       val engine = runtime.unsafe.run(Engine.create(0, new CounterFSM)).getOrThrow()
+      runtime.unsafe.runToFuture(engine.startProcessingLoop().repeat(Schedule.spaced(zio.Duration(10, TimeUnit.MILLISECONDS)))).future
 
       val getStateResponse1 = runtime.unsafe.runToFuture(engine.ask(CounterFSM.Message.GetStateRequest())).future
-      runtime.unsafe.runToFuture(engine.startProcessingLoop()).future
       getStateResponse1.futureValue.get shouldBe CounterFSM.Message.GetStateResponse(0)
 
       runtime.unsafe.runToFuture(engine.tell(CounterFSM.Message.IncrementRequest())).future
-      runtime.unsafe.runToFuture(engine.startProcessingLoop()).future
 
       val getStateResponse2 = runtime.unsafe.runToFuture(engine.ask(CounterFSM.Message.GetStateRequest())).future
-      runtime.unsafe.runToFuture(engine.startProcessingLoop()).future
       getStateResponse2.futureValue.get shouldBe CounterFSM.Message.GetStateResponse(1)
     }
   }
