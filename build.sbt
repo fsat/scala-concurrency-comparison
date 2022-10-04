@@ -63,3 +63,19 @@ lazy val `background-refresh-zio` = project
     ),
     Test / parallelExecution := false
   ))
+
+lazy val `fsm-zio` = project
+  .in(file("fsm-zio"))
+  .settings(Seq(
+    libraryDependencies ++= Seq(
+      "dev.zio" %% "zio" % Versions.zio,
+      "dev.zio" %% "zio-streams" % Versions.zio,
+      "dev.zio" %% "zio-json" % "0.3.0-RC11",
+      "dev.zio" %% "zio-logging" % Versions.zioLogging,
+      "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogging,
+      "ch.qos.logback" % "logback-classic" % Versions.logbackClassic,
+      "net.logstash.logback" % "logstash-logback-encoder" % Versions.logstashLogbackEncoder,
+      Libraries.scalaTest
+    ),
+    Test / parallelExecution := false
+  ))

@@ -5,11 +5,9 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import zio.logging.LogFormat
 import zio.logging.backend.SLF4J
-import zio.{ Fiber, LogLevel, Ref, Runtime, Schedule, Task, Unsafe, ZIO }
+import zio.{Ref, Runtime, Task, Unsafe, ZIO}
 
-import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 
 class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually with BeforeAndAfterAll {
