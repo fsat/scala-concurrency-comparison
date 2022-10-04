@@ -18,8 +18,7 @@ object Engine {
     for {
       mailbox <- Queue.unbounded[PendingMessage]
       s <- Ref.make(state)
-      f <- Ref.make(fsm)
-      engine = new Engine(mailbox, s, f)
+      engine = new Engine(mailbox, s, fsm)
       // TODO: continuously running engine
     } yield engine
   }
@@ -28,7 +27,7 @@ object Engine {
 class Engine[State, MessageRequest, MessageResponse](
   mailbox: Queue[PendingMessage],
   state: Ref[State],
-  fsm: Ref[FSM[State, MessageRequest, MessageResponse]]) {
+  fsm: FSM[State, MessageRequest, MessageResponse]) {
   def tell(message: MessageRequest): UIO[Unit] = {
     for {
       _ <- mailbox.offer(PendingMessage.Tell(message))
@@ -43,22 +42,21 @@ class Engine[State, MessageRequest, MessageResponse](
     } yield result
   }
 
-  def processNext(): Task[Unit] = {
+  def startProcessingLoop(): Task[Unit] = {
     val t = for {
       pendingMessage <- mailbox.take
       s <- state.get
-      f <- fsm.get
       _ <- pendingMessage match {
         case m: PendingMessage.Tell[MessageRequest @unchecked] =>
           for {
-            r <- f.apply(s, m.request)
+            r <- fsm.apply(s, m.request)
             (stateNext, _) = r
             _ <- state.set(stateNext)
           } yield ()
 
         case m: PendingMessage.Ask[MessageRequest @unchecked, MessageResponse @unchecked] =>
           for {
-            r <- f.apply(s, m.request)
+            r <- fsm.apply(s, m.request)
             (stateNext, response) = r
             _ <- m.replyTo.succeed(response)
             _ <- state.set(stateNext)

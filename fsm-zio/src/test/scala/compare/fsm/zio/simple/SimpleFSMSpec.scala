@@ -3,7 +3,7 @@ package compare.fsm.zio.simple
 import compare.fsm.zio.simple.SimpleFSMSpec.CounterFSM
 import compare.fsm.zio.simple.SimpleFSMSpec.CounterFSM.Message
 import org.scalatest.{ BeforeAndAfterAll, Inside }
-import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.{ Eventually, ScalaFutures }
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import zio.logging.backend.SLF4J
@@ -37,7 +37,7 @@ object SimpleFSMSpec {
   }
 }
 
-class SimpleFSMSpec extends AnyFunSpec with Matchers with Eventually with BeforeAndAfterAll with Inside {
+class SimpleFSMSpec extends AnyFunSpec with Matchers with Eventually with BeforeAndAfterAll with Inside with ScalaFutures {
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = 3.seconds)
 
   val slf4j = SLF4J.slf4j
@@ -50,13 +50,16 @@ class SimpleFSMSpec extends AnyFunSpec with Matchers with Eventually with Before
     Unsafe.unsafe { implicit unsafe =>
       val engine = runtime.unsafe.run(Engine.create(0, new CounterFSM)).getOrThrow()
 
-      val getStateResponse1 = runtime.unsafe.run(engine.ask(CounterFSM.Message.GetStateRequest())).getOrThrow()
-      getStateResponse1.get shouldBe CounterFSM.Message.GetStateResponse(0)
+      val getStateResponse1 = runtime.unsafe.runToFuture(engine.ask(CounterFSM.Message.GetStateRequest())).future
+      runtime.unsafe.runToFuture(engine.startProcessingLoop()).future
+      getStateResponse1.futureValue.get shouldBe CounterFSM.Message.GetStateResponse(0)
 
-      runtime.unsafe.run(engine.tell(CounterFSM.Message.IncrementRequest())).getOrThrow()
+      runtime.unsafe.runToFuture(engine.tell(CounterFSM.Message.IncrementRequest())).future
+      runtime.unsafe.runToFuture(engine.startProcessingLoop()).future
 
-      val getStateResponse2 = runtime.unsafe.run(engine.ask(CounterFSM.Message.GetStateRequest())).getOrThrow()
-      getStateResponse2.get shouldBe CounterFSM.Message.GetStateResponse(0)
+      val getStateResponse2 = runtime.unsafe.runToFuture(engine.ask(CounterFSM.Message.GetStateRequest())).future
+      runtime.unsafe.runToFuture(engine.startProcessingLoop()).future
+      getStateResponse2.futureValue.get shouldBe CounterFSM.Message.GetStateResponse(1)
     }
   }
 }
