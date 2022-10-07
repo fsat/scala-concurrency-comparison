@@ -1,10 +1,7 @@
 package compare.fsm.zio.simple
 
 import compare.fsm.zio.simple.Engine.PendingMessage
-import zio.{ ExecutionStrategy, IO, Promise, Queue, Ref, Schedule, Scope, Task, UIO, Unsafe, ZIO }
-
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.{ DurationInt, FiniteDuration }
+import zio._
 
 object Engine {
   object PendingMessage {
