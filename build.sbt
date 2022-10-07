@@ -12,6 +12,21 @@ lazy val Versions = new {
 
 lazy val Libraries = new {
   val scalaTest               = "org.scalatest"     %% "scalatest"                  % Versions.scalaTest   % "test"
+
+  val zioProjectLibraries = Seq(
+    "dev.zio" %% "zio" % Versions.zio,
+    "dev.zio" %% "zio-streams" % Versions.zio,
+    "dev.zio" %% "zio-json" % "0.3.0-RC11",
+    "dev.zio" %% "zio-actors" % "0.1.0",
+    "dev.zio" %% "zio-logging" % Versions.zioLogging,
+    "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogging,
+    "ch.qos.logback" % "logback-classic" % Versions.logbackClassic,
+    "net.logstash.logback" % "logstash-logback-encoder" % Versions.logstashLogbackEncoder,
+    scalaTest,
+    "dev.zio" %% "zio-test" % Versions.zio % "test",
+    "dev.zio" %% "zio-test-sbt" % Versions.zio % "test",
+    "dev.zio" %% "zio-test-magnolia" % Versions.zio % "test"
+  )
 }
 
 ThisBuild / scalaVersion := Versions.scalaVersion
@@ -28,7 +43,7 @@ lazy val `scala-concurrency-comparison` = project
   .in(file("."))
   .aggregate(
     `background-refresh-akka-typed`,
-    `background-refresh-zio` 
+    `background-refresh-zio`
   )
   .settings(
     Test / parallelExecution := false
@@ -51,31 +66,23 @@ lazy val `background-refresh-akka-typed` = project
 lazy val `background-refresh-zio` = project
   .in(file("background-refresh-zio"))
   .settings(Seq(
-    libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % Versions.zio,
-      "dev.zio" %% "zio-streams" % Versions.zio,
-      "dev.zio" %% "zio-json" % "0.3.0-RC11",
-      "dev.zio" %% "zio-logging" % Versions.zioLogging,
-      "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogging,
-      "ch.qos.logback" % "logback-classic" % Versions.logbackClassic,
-      "net.logstash.logback" % "logstash-logback-encoder" % Versions.logstashLogbackEncoder,
-      Libraries.scalaTest
-    ),
-    Test / parallelExecution := false
+    libraryDependencies ++= Libraries.zioProjectLibraries,
+    Test / parallelExecution := false,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
   ))
 
 lazy val `fsm-zio` = project
   .in(file("fsm-zio"))
   .settings(Seq(
-    libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % Versions.zio,
-      "dev.zio" %% "zio-streams" % Versions.zio,
-      "dev.zio" %% "zio-json" % "0.3.0-RC11",
-      "dev.zio" %% "zio-logging" % Versions.zioLogging,
-      "dev.zio" %% "zio-logging-slf4j" % Versions.zioLogging,
-      "ch.qos.logback" % "logback-classic" % Versions.logbackClassic,
-      "net.logstash.logback" % "logstash-logback-encoder" % Versions.logstashLogbackEncoder,
-      Libraries.scalaTest
-    ),
-    Test / parallelExecution := false
+    libraryDependencies ++= Libraries.zioProjectLibraries,
+    Test / parallelExecution := false,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+  ))
+
+lazy val `actors-zio` = project
+  .in(file("actors-zio"))
+  .settings(Seq(
+    libraryDependencies ++= Libraries.zioProjectLibraries,
+    Test / parallelExecution := false,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
   ))
