@@ -2,14 +2,13 @@ package compare.fsm.zio.simple
 
 import compare.fsm.zio.simple.SimpleFSMSpec.CounterFSM
 import compare.fsm.zio.simple.SimpleFSMSpec.CounterFSM.Message
-import org.scalatest.{ BeforeAndAfterAll, Inside }
 import org.scalatest.concurrent.{ Eventually, ScalaFutures }
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.{ BeforeAndAfterAll, Inside }
 import zio.logging.backend.SLF4J
-import zio.{ IO, Runtime, Schedule, Task, Unsafe, ZIO }
+import zio.{ Runtime, Task, Unsafe, ZIO }
 
-import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 
 object SimpleFSMSpec {
