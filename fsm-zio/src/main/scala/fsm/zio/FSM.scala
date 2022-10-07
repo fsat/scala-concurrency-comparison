@@ -1,4 +1,4 @@
-package compare.fsm.zio.simple
+package fsm.zio
 
 import zio.Task
 

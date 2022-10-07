@@ -43,7 +43,9 @@ lazy val `scala-concurrency-comparison` = project
   .in(file("."))
   .aggregate(
     `background-refresh-akka-typed`,
-    `background-refresh-zio`
+    `background-refresh-zio`,
+    `actors-zio`,
+    `fsm-zio`
   )
   .settings(
     Test / parallelExecution := false

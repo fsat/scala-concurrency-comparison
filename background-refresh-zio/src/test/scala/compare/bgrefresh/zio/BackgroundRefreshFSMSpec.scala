@@ -6,7 +6,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import zio.logging.backend.SLF4J
-import zio.{Ref, Runtime, Task, Unsafe, ZIO}
+import zio.{ Ref, Runtime, Task, Unsafe, ZIO }
 
 import scala.concurrent.duration._
 

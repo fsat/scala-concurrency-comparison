@@ -1,13 +1,12 @@
 package example.compare.fsm.zio.simple
 
-import compare.fsm.zio.simple.FSM
 import example.compare.fsm.zio.simple.CounterFSM.Message
+import fsm.zio.FSM
 import zio._
 
 object CounterFSM {
   object Message {
     final case class GetStateRequest() extends Request[GetStateResponse]
-
     final case class GetStateResponse(value: Int) extends Response
 
     final case class IncrementRequest() extends Request[Nothing]

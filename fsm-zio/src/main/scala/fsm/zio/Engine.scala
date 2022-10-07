@@ -1,6 +1,6 @@
-package compare.fsm.zio.simple
+package fsm.zio
 
-import compare.fsm.zio.simple.Engine.PendingMessage
+import fsm.zio.Engine.PendingMessage
 import zio._
 
 object Engine {
@@ -35,7 +35,7 @@ object Engine {
       pendingMessage <- mailbox.take
       s <- state.get
       _ <- pendingMessage match {
-        case m: PendingMessage.Tell[MessageRequest[_] @unchecked] =>
+        case m: PendingMessage.Tell[MessageRequest[Nothing] @unchecked] =>
           for {
             r <- fsm.apply(s, m.request)
             (stateNext, _) = r
@@ -58,9 +58,9 @@ object Engine {
 }
 
 class Engine[State, MessageRequest[+_], MessageResponse](
-  private[simple] val mailbox: Queue[PendingMessage],
-  private[simple] val state: Ref[State],
-  private[simple] val fsm: FSM[State, MessageRequest, MessageResponse]) {
+  private[zio] val mailbox: Queue[PendingMessage],
+  private[zio] val state: Ref[State],
+  private[zio] val fsm: FSM[State, MessageRequest, MessageResponse]) {
   def tell(message: MessageRequest[Nothing]): UIO[Unit] = {
     for {
       _ <- mailbox.offer(PendingMessage.Tell(message))
