@@ -18,8 +18,7 @@ object Engine {
   def create[State, MessageRequest[+_], MessageResponse](
     state: State,
     fsm: FSM[State, MessageRequest, MessageResponse],
-    mailboxSize: Int = 32000,
-    mailboxPollDuration: FiniteDuration = 10.millis): Task[Engine[State, MessageRequest, MessageResponse]] = {
+    mailboxSize: Int = 32000): Task[Engine[State, MessageRequest, MessageResponse]] = {
     for {
       mailbox <- Queue.dropping[PendingMessage](mailboxSize)
       s <- Ref.make(state)
@@ -28,7 +27,7 @@ object Engine {
       // Run the queue processing loop in parallel in the background
       parallelScope <- Scope.makeWith(ExecutionStrategy.Parallel)
       _ <- processMessage(engine)
-        .repeat(Schedule.spaced(zio.Duration(mailboxPollDuration.toMillis, TimeUnit.MILLISECONDS)))
+        .forever
         .forkIn(parallelScope)
     } yield engine
   }

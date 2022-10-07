@@ -4,13 +4,13 @@ import zio._
 import zio.test._
 
 object HelloZioSpec extends ZIOSpecDefault {
-  final case class Person(name: String, age: Int, hobbies: Seq[String])
+  final case class Coffee(origin: String, roastLevel: Int, taste: Seq[String])
   override def spec = suite("hello") {
     test("bla") {
       for {
-        result <- ZIO.attempt(Person("james", 23, Seq("procrastinating", "gaming")))
+        result <- ZIO.attempt(Coffee("Rwandan gesovu", 50, Seq("berry", "chocolate")))
       } yield {
-        assertTrue(result == Person("richard", 45, Seq("gaming", "cooking")))
+        assertTrue(result == Coffee("Brazilian mantequira", 23, Seq("berry", "caramel", "stone fruit")))
       }
     }
   }
