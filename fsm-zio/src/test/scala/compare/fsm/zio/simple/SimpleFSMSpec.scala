@@ -48,15 +48,23 @@ class SimpleFSMSpec extends AnyFunSpec with Matchers with Eventually with Before
 
   it("increments the counter") {
     Unsafe.unsafe { implicit unsafe =>
-      val engine = runtime.unsafe.run(Engine.create(0, new CounterFSM)).getOrThrow()
+      val t = for {
+        engine <- Engine.create(0, new CounterFSM)
 
-      val getStateResponse1 = runtime.unsafe.runToFuture(engine.ask(CounterFSM.Message.GetStateRequest())).future
-      getStateResponse1.futureValue.get shouldBe CounterFSM.Message.GetStateResponse(0)
+        getStateResponse1 <- engine.ask(CounterFSM.Message.GetStateRequest())
+        _ <- ZIO.attempt {
+          getStateResponse1.get shouldBe CounterFSM.Message.GetStateResponse(0)
+        }
 
-      runtime.unsafe.runToFuture(engine.tell(CounterFSM.Message.IncrementRequest())).future
+        _ <- engine.tell(CounterFSM.Message.IncrementRequest())
 
-      val getStateResponse2 = runtime.unsafe.runToFuture(engine.ask(CounterFSM.Message.GetStateRequest())).future
-      getStateResponse2.futureValue.get shouldBe CounterFSM.Message.GetStateResponse(1)
+        getStateResponse2 <- engine.ask(CounterFSM.Message.GetStateRequest())
+        _ <- ZIO.attempt {
+          getStateResponse2.get shouldBe CounterFSM.Message.GetStateResponse(1)
+        }
+      } yield ()
+
+      val _ = runtime.unsafe.run(t).getOrThrow()
     }
   }
 }
