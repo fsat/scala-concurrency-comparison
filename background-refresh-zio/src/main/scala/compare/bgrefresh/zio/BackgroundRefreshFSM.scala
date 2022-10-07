@@ -5,7 +5,7 @@ import compare.bgrefresh.zio.interpreter.BackgroundRefreshAlgebra
 import org.slf4j.{ LoggerFactory, MDC }
 import zio.logging.LogAnnotation
 import zio.logging.backend.SLF4J
-import zio.{ Cause, Ref, Runtime, Schedule, Task, UIO, ZIO, ZIOAspect }
+import zio.{ Cause, Ref, Runtime, Schedule, Scope, Task, UIO, ZIO, ZIOAspect, durationInt }
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
@@ -59,11 +59,18 @@ class BackgroundRefreshFSM(state: Ref[List[Int]])(implicit refreshInterpreter: B
     }
   }
 
+  def refreshContinually(interval: zio.Duration, mdc: Map[String, String]): Task[Done] = {
+    for {
+      parallelScope <- Scope.parallel
+      _ <- refresh(mdc)
+        .retry(Schedule.exponential(interval) && Schedule.upTo(interval.multipliedBy(10)))
+        .repeat(Schedule.spaced(interval))
+        .forkIn(parallelScope)
+    } yield Done
+  }
+
   def refreshContinually(interval: FiniteDuration, mdc: Map[String, String]): Task[Done] = {
     val zioInterval = zio.Duration(interval.toMillis, TimeUnit.MILLISECONDS)
-    refresh(mdc)
-      .retry(Schedule.exponential(zioInterval))
-      .repeat(Schedule.spaced(zioInterval))
-      .map(_ => Done)
+    refreshContinually(zioInterval, mdc)
   }
 }

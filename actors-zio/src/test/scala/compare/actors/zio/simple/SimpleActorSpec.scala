@@ -8,7 +8,7 @@ import java.util.UUID
 
 object SimpleActorSpec extends ZIOSpecDefault {
   def spec =
-    suite("simple actor") {
+    suite("simple actor")(
       test("incrementing state") {
         for {
           _ <- Console.printLine("creating actor system")
@@ -24,6 +24,5 @@ object SimpleActorSpec extends ZIOSpecDefault {
           getState2 <- actor ? SimpleActor.Message.GetStateRequest()
           r2 <- assertTrue(getState2 == 1)
         } yield r2
-      }
-    }
+      })
 }

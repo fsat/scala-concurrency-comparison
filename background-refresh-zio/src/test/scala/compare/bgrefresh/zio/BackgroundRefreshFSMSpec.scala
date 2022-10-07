@@ -1,83 +1,88 @@
 package compare.bgrefresh.zio
 
-import compare.bgrefresh.zio.interpreter.BackgroundRefreshInterpreter
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.Eventually
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
-import zio.logging.backend.SLF4J
-import zio.{ Ref, Runtime, Task, Unsafe, ZIO }
+import compare.bgrefresh.zio.interpreter.{ BackgroundRefreshAlgebra, BackgroundRefreshInterpreter }
+import zio._
+import zio.test._
+import zio.test.Assertion._
 
-import scala.concurrent.duration._
+object BackgroundRefreshFSMSpec extends ZIOSpecDefault {
 
-class BackgroundRefreshFSMSpec extends AnyFunSpec with Matchers with Eventually with BeforeAndAfterAll {
-  override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = 3.seconds)
+  class BackgroundRefreshInterpreterWithFailure(
+    successInterpreter: BackgroundRefreshInterpreter,
+    counter: Ref[Int],
+    dummyError: Exception,
+    successAfterN: Int) extends BackgroundRefreshAlgebra[Task] {
+    override def refresh(state: List[Int]): Task[List[Int]] = {
+      for {
+        counterValue <- counter.getAndUpdate(_ + 1)
+        result <- if (counterValue < successAfterN)
+          for {
+            _ <- Console.printLine(s"counter [${counterValue}] <=> successAfterN [${successAfterN}] - failing")
+            r <- ZIO.fail(dummyError)
+          } yield r
+        else
+          for {
+            _ <- Console.printLine(s"counter [${counterValue}] <=> successAfterN [${successAfterN}] - continuing w/ success")
+            r <- successInterpreter.refresh(state)
+          } yield r
+      } yield result
+    }
 
-  val slf4j = SLF4J.slf4j
-  val runtimeLayers = Runtime.removeDefaultLoggers ++ slf4j
-  val runtime = Unsafe.unsafe { implicit unsafe =>
-    Runtime.unsafe.fromLayer(runtimeLayers)
   }
+
+  val dummyError = new Exception("dummy")
   val mdc = Map("foo" -> "bla")
 
-  it("refreshes the list when the tick is sent") {
-    Unsafe.unsafe { implicit unsafe =>
-      val f = testFixture()
-      import f._
+  def spec = suite("background refresh")(
+    test("refreshes the list when the tick is sent") {
+      for {
+        bgRefreshWithSuccess <- ZIO.attempt(new BackgroundRefreshInterpreter)
 
-      val initialState = runtime.unsafe.run(fsm.getState()).getOrThrow()
-      initialState.isEmpty shouldBe true
-
-      runtime.unsafe.run(fsm.refresh(mdc)).getOrThrow()
-
-      val nextState = runtime.unsafe.run(fsm.getState()).getOrThrow()
-      nextState shouldBe List(0)
-    }
-  }
-
-  it("auto refreshes the list") {
-    Unsafe.unsafe { implicit unsafe =>
-      val f = testFixture(introduceFailure = true)
-      import f._
-
-      forkTask(fsm.refreshContinually(200.millis, mdc ++ Map("auto" -> "true"))) {
-        eventually {
-          val nextState = runtime.unsafe.run(fsm.getState()).getOrThrow()
-          nextState shouldBe List(0, 1, 2)
+        ref <- Ref.make(List.empty[Int])
+        fsm <- ZIO.attempt {
+          implicit val b = bgRefreshWithSuccess
+          new BackgroundRefreshFSM(ref)
         }
-      }
-    }
-  }
 
-  def testFixture(introduceFailure: Boolean = false, initialValue: List[Int] = List.empty)(implicit unsafe: Unsafe) = new {
-    val dummyError = new Exception("dummy")
-    val counter: Ref[Int] = runtime.unsafe.run(Ref.make(0)).getOrThrow()
+        initialState <- fsm.getState()
+        _ <- assertTrue(initialState.isEmpty)
 
-    val bgRefreshWithFailure = new BackgroundRefreshInterpreter {
-      override def refresh(state: List[Int]): Task[List[Int]] = {
-        for {
-          counterValue <- counter.getAndUpdate(_ + 1)
-          result <- if (counterValue <= 2) {
-            ZIO.fail(dummyError)
-          } else {
-            super.refresh(state)
-          }
-        } yield result
-      }
-    }
-    val bgRefreshWithSuccess = new BackgroundRefreshInterpreter
-    implicit val bgRefresh = if (introduceFailure) bgRefreshWithFailure else bgRefreshWithSuccess
-    val ref = runtime.unsafe.run(Ref.make(initialValue)).getOrThrow()
-    val fsm = new BackgroundRefreshFSM(ref)
-  }
+        _ <- fsm.refresh(mdc)
 
-  private def forkTask[A, T](task: Task[A])(callback: => T)(implicit unsafe: Unsafe): T = {
-    val fiber = runtime.unsafe.fork(task)
-    try {
-      callback
-    } finally {
-      runtime.unsafe.run(fiber.interrupt).getOrThrow()
-    }
-  }
+        nextState <- fsm.getState()
+        r <- assertTrue(nextState == List(0))
+      } yield r
+    },
 
+    test("refreshes continually") {
+      for {
+        failureCounter <- Ref.make(0)
+        bgRefreshWithFailure <- ZIO.attempt {
+          val success = new BackgroundRefreshInterpreter
+          new BackgroundRefreshInterpreterWithFailure(success, failureCounter, dummyError, successAfterN = 2)
+        }
+
+        ref <- Ref.make(List.empty[Int])
+        fsm <- ZIO.attempt {
+          implicit val b = bgRefreshWithFailure
+          new BackgroundRefreshFSM(ref)
+        }
+
+        _ <- fsm.refreshContinually(200.millis, mdc ++ Map("auto" -> "true"))
+
+        initialState <- fsm.getState()
+        _ <- assertTrue(initialState.isEmpty)
+
+        // First two will fail since successAfterN = 2
+        _ <- TestClock.adjust(200.millis)
+        _ <- TestClock.adjust(200.millis)
+        _ <- TestClock.adjust(200.millis)
+        nextState <- fsm.getState()
+        _ <- assertTrue(nextState == List(0))
+
+        _ <- TestClock.adjust(200.millis)
+        nextState <- fsm.getState()
+        r <- assertTrue(nextState == List(0, 1))
+      } yield r
+    })
 }
