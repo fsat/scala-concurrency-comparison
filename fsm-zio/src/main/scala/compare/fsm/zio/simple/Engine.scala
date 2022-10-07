@@ -15,7 +15,7 @@ object Engine {
   }
   sealed trait PendingMessage extends Product with Serializable
 
-  def create[State, MessageRequest, MessageResponse](
+  def create[State, MessageRequest[+_], MessageResponse](
     state: State,
     fsm: FSM[State, MessageRequest, MessageResponse],
     mailboxSize: Int = 32000,
@@ -33,20 +33,20 @@ object Engine {
     } yield engine
   }
 
-  private def processMessage[State, MessageRequest, MessageResponse](engine: Engine[State, MessageRequest, MessageResponse]): Task[Unit] = {
+  private def processMessage[State, MessageRequest[+_], MessageResponse](engine: Engine[State, MessageRequest, MessageResponse]): Task[Unit] = {
     import engine._
     val t = for {
       pendingMessage <- mailbox.take
       s <- state.get
       _ <- pendingMessage match {
-        case m: PendingMessage.Tell[MessageRequest @unchecked] =>
+        case m: PendingMessage.Tell[MessageRequest[_] @unchecked] =>
           for {
             r <- fsm.apply(s, m.request)
             (stateNext, _) = r
             _ <- state.set(stateNext)
           } yield ()
 
-        case m: PendingMessage.Ask[MessageRequest @unchecked, MessageResponse @unchecked] =>
+        case m: PendingMessage.Ask[MessageRequest[_] @unchecked, MessageResponse @unchecked] =>
           for {
             r <- fsm.apply(s, m.request)
             (stateNext, response) = r
@@ -61,19 +61,19 @@ object Engine {
 
 }
 
-class Engine[State, MessageRequest, MessageResponse](
+class Engine[State, MessageRequest[+_], MessageResponse](
   private[simple] val mailbox: Queue[PendingMessage],
   private[simple] val state: Ref[State],
   private[simple] val fsm: FSM[State, MessageRequest, MessageResponse]) {
-  def tell(message: MessageRequest): UIO[Unit] = {
+  def tell(message: MessageRequest[Nothing]): UIO[Unit] = {
     for {
       _ <- mailbox.offer(PendingMessage.Tell(message))
     } yield ()
   }
 
-  def ask(message: MessageRequest): Task[Option[MessageResponse]] = {
+  def ask[T <: MessageResponse](message: MessageRequest[T]): Task[Option[T]] = {
     for {
-      p <- Promise.make[Throwable, Option[MessageResponse]]
+      p <- Promise.make[Throwable, Option[T]]
       _ <- mailbox.offer(PendingMessage.Ask(message, p))
       result <- p.await
     } yield result

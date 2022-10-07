@@ -15,19 +15,19 @@ import scala.concurrent.duration._
 object SimpleFSMSpec {
   object CounterFSM {
     object Message {
-      final case class GetStateRequest() extends Request
+      final case class GetStateRequest() extends Request[GetStateResponse]
       final case class GetStateResponse(value: Int) extends Response
 
-      final case class IncrementRequest() extends Request
+      final case class IncrementRequest() extends Request[Nothing]
 
-      sealed trait Request extends Message
+      sealed trait Request[+_] extends Message
       sealed trait Response extends Message
 
     }
     sealed trait Message extends Product with Serializable
   }
   class CounterFSM extends FSM[Int, Message.Request, Message.Response] {
-    override def apply(state: Int, message: Message.Request): Task[(Int, Option[Message.Response])] = {
+    override def apply(state: Int, message: Message.Request[_]): Task[(Int, Option[Message.Response])] = {
       ZIO.attempt {
         message match {
           case _: Message.IncrementRequest => (state + 1, None)
