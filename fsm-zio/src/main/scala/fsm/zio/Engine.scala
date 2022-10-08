@@ -64,4 +64,10 @@ class Engine[State, MessageRequest](
     } yield result
   }
 
+  def stop(): UIO[Unit] = {
+    for {
+      _ <- mailbox.takeAll
+      _ <- mailbox.shutdown
+    } yield ()
+  }
 }
