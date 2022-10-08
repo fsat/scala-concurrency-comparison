@@ -30,7 +30,8 @@ object SimpleFSMSpec extends ZIOSpecDefault {
 
         _ <- engine.tell(CounterFSM.Message.SelfIncrementRequest())
 
-        getStateResponse2 <- engine.ask(CounterFSM.Message.GetStateRequest)
+        // Need to repeatedly call until value > 0 since `.tell` performs async operation
+        getStateResponse2 <- engine.ask(CounterFSM.Message.GetStateRequest).repeatUntil(_.value > 0)
         r <- assertTrue(getStateResponse2 == CounterFSM.Message.GetStateResponse(1))
       } yield r
     })
