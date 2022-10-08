@@ -48,6 +48,7 @@ class Engine[State, MessageRequest](
   private[zio] val mailbox: Queue[PendingMessage],
   private[zio] val state: Ref[State],
   private[zio] val fsm: FSM[State, MessageRequest]) {
+
   def tell(message: MessageRequest): UIO[Unit] = {
     for {
       _ <- mailbox.offer(PendingMessage.Tell(message))
