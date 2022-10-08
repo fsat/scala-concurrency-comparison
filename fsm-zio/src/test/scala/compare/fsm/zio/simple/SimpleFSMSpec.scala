@@ -10,7 +10,7 @@ object SimpleFSMSpec extends ZIOSpecDefault {
   override def spec = suite("simple fsm")(
     test("increments the counter") {
       for {
-        engine <- Engine.create(0, new CounterFSM)
+        engine <- Engine.create(CounterFSM.State.Counter(0), new CounterFSM)
 
         getStateResponse1 <- engine.ask(CounterFSM.Message.GetStateRequest)
         _ <- assertTrue(getStateResponse1 == CounterFSM.Message.GetStateResponse(0))
