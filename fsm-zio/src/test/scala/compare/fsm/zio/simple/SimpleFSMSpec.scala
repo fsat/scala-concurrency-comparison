@@ -12,13 +12,13 @@ object SimpleFSMSpec extends ZIOSpecDefault {
       for {
         engine <- Engine.create(0, new CounterFSM)
 
-        getStateResponse1 <- engine.ask(CounterFSM.Message.GetStateRequest())
-        _ <- assertTrue(getStateResponse1.get == CounterFSM.Message.GetStateResponse(0))
+        getStateResponse1 <- engine.ask(CounterFSM.Message.GetStateRequest)
+        _ <- assertTrue(getStateResponse1 == CounterFSM.Message.GetStateResponse(0))
 
         _ <- engine.tell(CounterFSM.Message.IncrementRequest())
 
-        getStateResponse2 <- engine.ask(CounterFSM.Message.GetStateRequest())
-        r <- assertTrue(getStateResponse2.get == CounterFSM.Message.GetStateResponse(1))
+        getStateResponse2 <- engine.ask(CounterFSM.Message.GetStateRequest)
+        r <- assertTrue(getStateResponse2 == CounterFSM.Message.GetStateResponse(1))
       } yield r
     })
 }
