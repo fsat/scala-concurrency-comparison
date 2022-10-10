@@ -5,14 +5,19 @@ import PhysicalResourceFSM._
 import example.compare.fsm.zio.nested.physical.interpreter.{ PhysicalResource, PhysicalResourceAlgebra }
 import zio.{ Task, _ }
 
+import scala.util.Try
+
 object PhysicalResourceFSM {
   object Message {
-    final case class CreateOrUpdateRequest(endpointName: String, replyTo: Promise[Throwable, CreateOrUpdateResponse]) extends Request
+    final case class CreateOrUpdateRequest(
+      endpointName: String,
+      physicalResource: PhysicalResource,
+      replyTo: Promise[Throwable, CreateOrUpdateResponse]) extends Request
     object CreateOrUpdateResponse {
-      final case class Creating() extends CreateOrUpdateResponse
-      final case class Updating() extends CreateOrUpdateResponse
+      final case class Creating(id: PhysicalResource.Id) extends CreateOrUpdateResponse
+      final case class Updating(id: PhysicalResource.Id) extends CreateOrUpdateResponse
       final case class Busy() extends CreateOrUpdateResponse
-      final case class Failure() extends CreateOrUpdateResponse
+      final case class Failure(error: Throwable) extends CreateOrUpdateResponse
     }
     sealed trait CreateOrUpdateResponse extends Product with Serializable
 
@@ -31,10 +36,22 @@ object PhysicalResourceFSM {
   }
   sealed trait Message extends Product with Serializable
 
+  object MessageSelf {
+    object InitialState {
+      final case class FindEndpointComplete(result: Try[Option[PhysicalResource]]) extends MessageSelf
+      final case class PhysicalResourceCreateComplete(result: Try[PhysicalResource.Id]) extends MessageSelf
+      final case class PhysicalResourceUpdateComplete(result: Try[PhysicalResource.Id]) extends MessageSelf
+    }
+  }
+  sealed trait MessageSelf extends Message.Request
+
   object State {
+    object InitialState {
+      final case class FindEndpointState(request: Message.CreateOrUpdateRequest) extends State
+    }
     final case class InitialState() extends State
-    final case class CreatingState(update: PhysicalResource) extends State
-    final case class UpdatingState(id: PhysicalResource.Id, existing: PhysicalResource, update: PhysicalResource) extends State
+    final case class CreatingState(request: Message.CreateOrUpdateRequest) extends State
+    final case class UpdatingState(existing: PhysicalResource, request: Message.CreateOrUpdateRequest) extends State
     final case class DownloadingArtifactsState(id: PhysicalResource.Id) extends State
     final case class RunningState(id: PhysicalResource.Id) extends State
     final case class FailureState(error: Throwable, id: Option[PhysicalResource.Id]) extends State
@@ -50,93 +67,13 @@ class PhysicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[Stat
 
   override def apply(state: State, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] =
     state match {
-      case s: State.InitialState => apply(s, message, ctx)
-      case s: State.CreatingState => apply(s, message, ctx)
-      case s: State.UpdatingState => apply(s, message, ctx)
-      case s: State.DownloadingArtifactsState => apply(s, message, ctx)
-      case s: State.RunningState => apply(s, message, ctx)
-      case s: State.FailureState => apply(s, message, ctx)
+      case s: State.InitialState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
+      case s: State.InitialState.FindEndpointState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
+      case s: State.CreatingState => ???
+      case s: State.UpdatingState => ???
+      case s: State.DownloadingArtifactsState => ???
+      case s: State.RunningState => ???
+      case s: State.FailureState => ???
     }
 
-  private[physical] def apply(state: State.InitialState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
-    message match {
-      case r: Message.CreateOrUpdateRequest =>
-        for {
-          isEndpointPresent <- physicalResource.find(r.endpointName)
-        } yield state
-
-        ???
-      case r: Message.GetStatusRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.GetStatusResponse.Initial())
-        } yield state
-    }
-  }
-
-  private[physical] def apply(state: State.CreatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
-    message match {
-      case r: Message.CreateOrUpdateRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.CreateOrUpdateResponse.Busy())
-        } yield state
-
-      case r: Message.GetStatusRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.GetStatusResponse.Creating())
-        } yield state
-    }
-  }
-
-  private[physical] def apply(state: State.UpdatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
-    message match {
-      case r: Message.CreateOrUpdateRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.CreateOrUpdateResponse.Busy())
-        } yield state
-
-      case r: Message.GetStatusRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.GetStatusResponse.Updating())
-        } yield state
-    }
-  }
-
-  private[physical] def apply(state: State.DownloadingArtifactsState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
-    message match {
-      case r: Message.CreateOrUpdateRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.CreateOrUpdateResponse.Busy())
-        } yield state
-
-      case r: Message.GetStatusRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.GetStatusResponse.DownloadingArtifacts())
-        } yield state
-    }
-  }
-
-  private[physical] def apply(state: State.RunningState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
-    message match {
-      case r: Message.CreateOrUpdateRequest => ???
-      case r: Message.GetStatusRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.GetStatusResponse.Running())
-        } yield state
-    }
-  }
-
-  private[physical] def apply(state: State.FailureState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
-    message match {
-      case r: Message.CreateOrUpdateRequest =>
-        state.id match {
-          case None => apply(State.InitialState(), r, ctx)
-          case Some(v) => apply(State.RunningState(v), r, ctx)
-        }
-
-      case r: Message.GetStatusRequest =>
-        for {
-          _ <- r.replyTo.succeed(Message.GetStatusResponse.Failure())
-        } yield state
-    }
-  }
 }
