@@ -3,7 +3,7 @@ package fsm.zio
 import zio.{ Promise, Task, UIO }
 
 object FSMRef {
-  class Local[State, MessageRequest](engine: Engine[State, MessageRequest]) extends FSMRef[State, MessageRequest] {
+  class Local[MessageRequest](engine: Engine[_, MessageRequest]) extends FSMRef[MessageRequest] {
     def tell(message: MessageRequest): UIO[Unit] =
       engine.tell(message)
 
@@ -13,7 +13,7 @@ object FSMRef {
     def stop(): UIO[Unit] = engine.stop()
   }
 
-  class Self[State, MessageRequest](engine: Engine[State, MessageRequest]) extends FSMRef[State, MessageRequest] {
+  class Self[MessageRequest](engine: Engine[_, MessageRequest]) extends FSMRef[MessageRequest] {
     def tell(message: MessageRequest): UIO[Unit] =
       engine.tell(message)
 
@@ -21,4 +21,4 @@ object FSMRef {
   }
 }
 
-sealed trait FSMRef[State, MessageRequest]
+sealed trait FSMRef[MessageRequest]

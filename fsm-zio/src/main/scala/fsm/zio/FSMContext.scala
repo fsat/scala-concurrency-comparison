@@ -1,6 +1,5 @@
 package fsm.zio
 
-class FSMContext[State, MessageRequest](
-  val self: FSMRef.Self[State, MessageRequest]) {
-
+class FSMContext[MessageRequest](
+  val self: FSMRef.Self[MessageRequest]) {
 }

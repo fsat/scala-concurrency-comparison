@@ -26,13 +26,13 @@ object CounterFSM {
 }
 
 class CounterFSM extends FSM[State, Message.Request] {
-  override def apply(state: State, message: Message.Request, ctx: FSMContext[State, Message.Request]): UIO[State] = {
+  override def apply(state: State, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     state match {
       case sc: State.Counter => apply(sc, message, ctx)
     }
   }
 
-  private def apply(state: State.Counter, message: Message.Request, ctx: FSMContext[State, Message.Request]): UIO[State] = {
+  private def apply(state: State.Counter, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     message match {
       case _: Message.IncrementRequest => ZIO.succeed(State.Counter(state.value + 1))
       case _: Message.SelfIncrementRequest =>
