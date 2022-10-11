@@ -51,10 +51,10 @@ object PhysicalResourceFSM {
     }
     final case class InitialState() extends State
     final case class CreatingState(request: Message.CreateOrUpdateRequest) extends State
-    final case class UpdatingState(existing: PhysicalResource, request: Message.CreateOrUpdateRequest) extends State
+    final case class UpdatingState(id: PhysicalResource.Id, existing: PhysicalResource, request: Message.CreateOrUpdateRequest) extends State
     final case class DownloadingArtifactsState(id: PhysicalResource.Id) extends State
     final case class RunningState(id: PhysicalResource.Id) extends State
-    final case class FailureState(error: Throwable, id: Option[PhysicalResource.Id]) extends State
+    final case class FailureState(error: Throwable, existing: Option[PhysicalResource]) extends State
   }
   sealed trait State extends Product with Serializable
 
@@ -69,8 +69,8 @@ class PhysicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[Stat
     state match {
       case s: State.InitialState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
       case s: State.InitialState.FindEndpointState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
-      case s: State.CreatingState => ???
-      case s: State.UpdatingState => ???
+      case s: State.CreatingState => new PhysicalResourceCreateOrUpdateFSM().apply(s, message, ctx)
+      case s: State.UpdatingState => new PhysicalResourceCreateOrUpdateFSM().apply(s, message, ctx)
       case s: State.DownloadingArtifactsState => ???
       case s: State.RunningState => ???
       case s: State.FailureState => ???
