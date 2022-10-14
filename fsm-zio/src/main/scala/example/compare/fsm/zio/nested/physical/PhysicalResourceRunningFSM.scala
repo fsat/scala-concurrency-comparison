@@ -69,4 +69,23 @@ class PhysicalResourceRunningFSM()(implicit deps: RuntimeDependencies) {
       }
     } yield nextState
   }
+
+  private[physical] def apply(state: State.RunningState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+    message match {
+      case r: Message.CreateOrUpdateRequest =>
+        ZIO.succeed(State.UpdatingState(state.id, state.physicalResource, r))
+
+      case r: Message.GetStatusRequest =>
+        for {
+          _ <- r.replyTo.succeed(Message.GetStatusResponse.Running())
+        } yield state
+
+      case _: MessageSelf.InitialState.FindEndpointComplete |
+        _: MessageSelf.InitialState.PhysicalResourceCreateComplete |
+        _: MessageSelf.InitialState.PhysicalResourceUpdateComplete |
+        _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete |
+        _: MessageSelf.DownloadingArtifactsState.DownloadArtifactsComplete =>
+        ZIO.succeed(state)
+    }
+  }
 }
