@@ -21,7 +21,9 @@ class PhysicalResourceInitialFSM()(implicit deps: RuntimeDependencies) {
 
       case _: MessageSelf.InitialState.FindEndpointComplete |
         _: MessageSelf.InitialState.PhysicalResourceCreateComplete |
-        _: MessageSelf.InitialState.PhysicalResourceUpdateComplete =>
+        _: MessageSelf.InitialState.PhysicalResourceUpdateComplete |
+        _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete |
+        _: MessageSelf.DownloadingArtifactsState.DownloadArtifactsComplete =>
         ZIO.succeed(state)
     }
   }
@@ -32,7 +34,7 @@ class PhysicalResourceInitialFSM()(implicit deps: RuntimeDependencies) {
       nextState <- message match {
         case r: MessageSelf.InitialState.FindEndpointComplete =>
           r.result match {
-            case Success(Some(existing)) => ZIO.succeed(State.UpdatingState(existing, state.request))
+            case Success(Some((existingResourceId, existingResouce))) => ZIO.succeed(State.UpdatingState(existingResourceId, existingResouce, state.request))
             case Success(None) => ZIO.succeed(State.CreatingState(state.request))
             case Failure(e) =>
               for {
@@ -52,7 +54,9 @@ class PhysicalResourceInitialFSM()(implicit deps: RuntimeDependencies) {
 
         case _: MessageSelf.InitialState.FindEndpointComplete |
           _: MessageSelf.InitialState.PhysicalResourceCreateComplete |
-          _: MessageSelf.InitialState.PhysicalResourceUpdateComplete =>
+          _: MessageSelf.InitialState.PhysicalResourceUpdateComplete |
+          _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete |
+          _: MessageSelf.DownloadingArtifactsState.DownloadArtifactsComplete =>
           ZIO.succeed(state)
       }
     } yield nextState

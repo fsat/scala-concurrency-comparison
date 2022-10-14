@@ -2,9 +2,12 @@ package example.compare.fsm.zio.nested.physical
 
 import fsm.zio.{ FSM, FSMContext }
 import PhysicalResourceFSM._
+import example.compare.fsm.zio.nested.physical.interpreter.PhysicalResourceAlgebra.ArtifactDownloadLocation
 import example.compare.fsm.zio.nested.physical.interpreter.{ PhysicalResource, PhysicalResourceAlgebra }
+import zio.stream.ZStream
 import zio.{ Task, _ }
 
+import java.net.URL
 import scala.util.Try
 
 object PhysicalResourceFSM {
@@ -38,9 +41,14 @@ object PhysicalResourceFSM {
 
   object MessageSelf {
     object InitialState {
-      final case class FindEndpointComplete(result: Try[Option[PhysicalResource]]) extends MessageSelf
+      final case class FindEndpointComplete(result: Try[Option[(PhysicalResource.Id, PhysicalResource)]]) extends MessageSelf
       final case class PhysicalResourceCreateComplete(result: Try[PhysicalResource.Id]) extends MessageSelf
       final case class PhysicalResourceUpdateComplete(result: Try[PhysicalResource.Id]) extends MessageSelf
+    }
+
+    object DownloadingArtifactsState {
+      final case class DownloadSingleArtifactComplete(result: Try[ArtifactDownloadLocation]) extends MessageSelf
+      final case class DownloadArtifactsComplete(totalDownloaded: Try[Int]) extends MessageSelf
     }
   }
   sealed trait MessageSelf extends Message.Request
@@ -52,14 +60,15 @@ object PhysicalResourceFSM {
     final case class InitialState() extends State
     final case class CreatingState(request: Message.CreateOrUpdateRequest) extends State
     final case class UpdatingState(id: PhysicalResource.Id, existing: PhysicalResource, request: Message.CreateOrUpdateRequest) extends State
-    final case class DownloadingArtifactsState(id: PhysicalResource.Id) extends State
-    final case class RunningState(id: PhysicalResource.Id) extends State
+    final case class DownloadingArtifactsState(id: PhysicalResource.Id, physicalResource: PhysicalResource) extends State
+    final case class RunningState(id: PhysicalResource.Id, physicalResource: PhysicalResource) extends State
     final case class FailureState(error: Throwable, existing: Option[PhysicalResource]) extends State
   }
   sealed trait State extends Product with Serializable
 
   final case class RuntimeDependencies(
-    physicalResource: PhysicalResourceAlgebra[Task])
+    downloadArtifactsParallelism: Int,
+    physicalResource: PhysicalResourceAlgebra[Task, ZStream])
 }
 
 class PhysicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[State, Message.Request] {
@@ -71,7 +80,7 @@ class PhysicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[Stat
       case s: State.InitialState.FindEndpointState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
       case s: State.CreatingState => new PhysicalResourceCreateOrUpdateFSM().apply(s, message, ctx)
       case s: State.UpdatingState => new PhysicalResourceCreateOrUpdateFSM().apply(s, message, ctx)
-      case s: State.DownloadingArtifactsState => ???
+      case s: State.DownloadingArtifactsState => new PhysicalResourceRunningFSM().apply(s, message, ctx)
       case s: State.RunningState => ???
       case s: State.FailureState => ???
     }

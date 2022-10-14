@@ -18,7 +18,7 @@ class PhysicalResourceCreateOrUpdateFSM()(implicit deps: RuntimeDependencies) {
             case Success(pid) =>
               for {
                 _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Creating(pid))
-              } yield State.DownloadingArtifactsState(pid)
+              } yield State.DownloadingArtifactsState(pid, state.request.physicalResource)
 
             case Failure(error) =>
               for {
@@ -37,7 +37,9 @@ class PhysicalResourceCreateOrUpdateFSM()(implicit deps: RuntimeDependencies) {
           } yield state
 
         case _: MessageSelf.InitialState.FindEndpointComplete |
-          _: MessageSelf.InitialState.PhysicalResourceUpdateComplete =>
+          _: MessageSelf.InitialState.PhysicalResourceUpdateComplete |
+          _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete |
+          _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete =>
           ZIO.succeed(state)
       }
     } yield nextState
@@ -52,7 +54,7 @@ class PhysicalResourceCreateOrUpdateFSM()(implicit deps: RuntimeDependencies) {
             case Success(pid) =>
               for {
                 _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Updating(pid))
-              } yield State.DownloadingArtifactsState(pid)
+              } yield State.DownloadingArtifactsState(pid, state.request.physicalResource)
 
             case Failure(error) =>
               for {
@@ -71,7 +73,9 @@ class PhysicalResourceCreateOrUpdateFSM()(implicit deps: RuntimeDependencies) {
           } yield state
 
         case _: MessageSelf.InitialState.FindEndpointComplete |
-          _: MessageSelf.InitialState.PhysicalResourceCreateComplete =>
+          _: MessageSelf.InitialState.PhysicalResourceCreateComplete |
+          _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete |
+          _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete =>
           ZIO.succeed(state)
       }
     } yield nextState
