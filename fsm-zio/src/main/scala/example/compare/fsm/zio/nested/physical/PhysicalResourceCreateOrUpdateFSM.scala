@@ -39,7 +39,7 @@ class PhysicalResourceCreateOrUpdateFSM()(implicit deps: RuntimeDependencies) {
         case _: MessageSelf.InitialState.FindEndpointComplete |
           _: MessageSelf.InitialState.PhysicalResourceUpdateComplete |
           _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete |
-          _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete =>
+          _: MessageSelf.DownloadingArtifactsState.DownloadArtifactsComplete =>
           ZIO.succeed(state)
       }
     } yield nextState
@@ -59,7 +59,7 @@ class PhysicalResourceCreateOrUpdateFSM()(implicit deps: RuntimeDependencies) {
             case Failure(error) =>
               for {
                 _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Failure(error))
-              } yield State.FailureState(error, Some(state.existing))
+              } yield State.FailureState(error, Some((state.id, state.existing)))
           }
 
         case r: Message.CreateOrUpdateRequest =>
@@ -75,7 +75,7 @@ class PhysicalResourceCreateOrUpdateFSM()(implicit deps: RuntimeDependencies) {
         case _: MessageSelf.InitialState.FindEndpointComplete |
           _: MessageSelf.InitialState.PhysicalResourceCreateComplete |
           _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete |
-          _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete =>
+          _: MessageSelf.DownloadingArtifactsState.DownloadArtifactsComplete =>
           ZIO.succeed(state)
       }
     } yield nextState
