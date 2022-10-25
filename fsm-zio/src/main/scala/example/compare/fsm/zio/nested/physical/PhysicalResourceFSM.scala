@@ -2,10 +2,12 @@ package example.compare.fsm.zio.nested.physical
 
 import fsm.zio.{ FSM, FSMContext }
 import PhysicalResourceFSM._
+import example.compare.fsm.zio.nested.events.ExampleEvent.PhysicalResourceEvent
+import example.compare.fsm.zio.nested.events.EventsAlgebra
 import example.compare.fsm.zio.nested.physical.interpreter.PhysicalResourceAlgebra.ArtifactDownloadLocation
 import example.compare.fsm.zio.nested.physical.interpreter.{ PhysicalResource, PhysicalResourceAlgebra }
 import zio.stream.ZStream
-import zio.{ Task, _ }
+import zio._
 
 import java.net.URL
 import scala.util.Try
@@ -68,21 +70,26 @@ object PhysicalResourceFSM {
 
   final case class RuntimeDependencies(
     downloadArtifactsParallelism: Int,
-    physicalResource: PhysicalResourceAlgebra[Task, ZStream])
+    physicalResource: PhysicalResourceAlgebra[Task, ZStream],
+    events: EventsAlgebra[UIO, ZStream, PhysicalResourceEvent])
 }
 
 class PhysicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[State, Message.Request] {
   import deps._
 
-  override def apply(state: State, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] =
-    state match {
-      case s: State.InitialState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
-      case s: State.InitialState.FindEndpointState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
-      case s: State.CreatingState => new PhysicalResourceCreateOrUpdateFSM().apply(s, message, ctx)
-      case s: State.UpdatingState => new PhysicalResourceCreateOrUpdateFSM().apply(s, message, ctx)
-      case s: State.DownloadingArtifactsState => new PhysicalResourceRunningFSM().apply(s, message, ctx)
-      case s: State.RunningState => new PhysicalResourceRunningFSM().apply(s, message, ctx)
-      case s: State.FailureState => new PhysicalResourceFailureFSM().apply(s, message, ctx)
-    }
+  override def apply(state: State, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+    for {
+      nextState <- state match {
+        case s: State.InitialState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
+        case s: State.InitialState.FindEndpointState => new PhysicalResourceInitialFSM().apply(s, message, ctx)
+        case s: State.CreatingState => new PhysicalResourceCreateOrUpdateFSM().apply(s, message, ctx)
+        case s: State.UpdatingState => new PhysicalResourceCreateOrUpdateFSM().apply(s, message, ctx)
+        case s: State.DownloadingArtifactsState => new PhysicalResourceRunningFSM().apply(s, message, ctx)
+        case s: State.RunningState => new PhysicalResourceRunningFSM().apply(s, message, ctx)
+        case s: State.FailureState => new PhysicalResourceFailureFSM().apply(s, message, ctx)
+      }
+      _ <- events.publish(PhysicalResourceEvent.StateTransition(state, nextState))
+    } yield nextState
+  }
 
 }
