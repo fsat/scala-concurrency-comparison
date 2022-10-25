@@ -7,5 +7,5 @@ class EventsInterpreter[Event](hub: Hub[Event]) extends EventsAlgebra[UIO, ZStre
   override def publish[T <: Event](event: T): UIO[Unit] =
     hub.publish(event).map(_ => ())
 
-  override def subscribe(): UIO[Queue[Event]] = ???
+  override def subscribe(): UIO[ZStream[Any, Nothing, Event]] = ???
 }

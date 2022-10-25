@@ -10,7 +10,7 @@ object PhysicalResourceAlgebra {
   final case class ArtifactDownloadLocation(url: URL)
 }
 
-sealed trait PhysicalResourceAlgebra[F[_], FStream[_, _, _]] {
+trait PhysicalResourceAlgebra[F[_], FStream[_, _, _]] {
   def find(name: String): F[Option[(PhysicalResource.Id, PhysicalResource)]]
   def create(name: String, resource: PhysicalResource): F[PhysicalResource.Id]
   def update(name: String, resource: PhysicalResource): F[PhysicalResource.Id]
