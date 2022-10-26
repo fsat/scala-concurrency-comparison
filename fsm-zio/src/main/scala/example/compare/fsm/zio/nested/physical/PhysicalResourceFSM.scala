@@ -3,10 +3,10 @@ package example.compare.fsm.zio.nested.physical
 import fsm.zio.{ FSM, FSMContext }
 import PhysicalResourceFSM._
 import example.compare.fsm.zio.nested.events.ExampleEvent.PhysicalResourceEvent
-import example.compare.fsm.zio.nested.events.EventsAlgebra
+import example.compare.fsm.zio.nested.events.{ EventsAlgebra, EventsInterpreter }
 import example.compare.fsm.zio.nested.physical.interpreter.PhysicalResourceAlgebra.ArtifactDownloadLocation
 import example.compare.fsm.zio.nested.physical.interpreter.{ PhysicalResource, PhysicalResourceAlgebra }
-import zio.stream.ZStream
+import zio.stream._
 import zio._
 
 import java.net.URL
@@ -71,7 +71,7 @@ object PhysicalResourceFSM {
   final case class RuntimeDependencies(
     downloadArtifactsParallelism: Int,
     physicalResource: PhysicalResourceAlgebra[Task, ZStream],
-    events: EventsAlgebra[UIO, ZStream, PhysicalResourceEvent])
+    events: EventsAlgebra[UIO, EventsInterpreter.ScopedUIO, UStream, PhysicalResourceEvent])
 }
 
 class PhysicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[State, Message.Request] {
