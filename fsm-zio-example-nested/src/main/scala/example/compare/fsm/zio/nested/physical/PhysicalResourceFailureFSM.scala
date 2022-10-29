@@ -5,7 +5,6 @@ import fsm.zio.FSMContext
 import zio._
 
 class PhysicalResourceFailureFSM()(implicit deps: RuntimeDependencies) {
-  import deps._
 
   private[physical] def apply(state: State.FailureState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     message match {

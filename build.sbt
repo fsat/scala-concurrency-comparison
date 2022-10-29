@@ -45,7 +45,9 @@ lazy val `scala-concurrency-comparison` = project
     `background-refresh-akka-typed`,
     `background-refresh-zio`,
     `actors-zio`,
-    `fsm-zio`
+    `fsm-zio`,
+    `fsm-zio-example-simple`,
+    `fsm-zio-example-nested`
   )
   .settings(
     Test / parallelExecution := false
@@ -75,6 +77,24 @@ lazy val `background-refresh-zio` = project
 
 lazy val `fsm-zio` = project
   .in(file("fsm-zio"))
+  .settings(Seq(
+    libraryDependencies ++= Libraries.zioProjectLibraries,
+    Test / parallelExecution := false,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+  ))
+
+lazy val `fsm-zio-example-simple` = project
+  .in(file("fsm-zio-example-simple"))
+  .dependsOn(`fsm-zio`)
+  .settings(Seq(
+    libraryDependencies ++= Libraries.zioProjectLibraries,
+    Test / parallelExecution := false,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+  ))
+
+lazy val `fsm-zio-example-nested` = project
+  .in(file("fsm-zio-example-nested"))
+  .dependsOn(`fsm-zio`)
   .settings(Seq(
     libraryDependencies ++= Libraries.zioProjectLibraries,
     Test / parallelExecution := false,

@@ -7,7 +7,6 @@ import zio._
 import scala.util.{ Failure, Success }
 
 class PhysicalResourceCreateOrUpdateFSM()(implicit deps: RuntimeDependencies) {
-  import deps._
 
   private[physical] def apply(state: State.CreatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     for {

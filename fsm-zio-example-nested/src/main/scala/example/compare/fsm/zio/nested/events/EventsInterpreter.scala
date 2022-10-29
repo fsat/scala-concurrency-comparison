@@ -1,9 +1,8 @@
 package example.compare.fsm.zio.nested.events
 
+import example.compare.fsm.zio.nested.events.EventsInterpreter._
 import zio._
 import zio.stream._
-
-import EventsInterpreter._
 
 object EventsInterpreter {
   type ScopedUIO[+A] = ZIO[Scope, Nothing, A]

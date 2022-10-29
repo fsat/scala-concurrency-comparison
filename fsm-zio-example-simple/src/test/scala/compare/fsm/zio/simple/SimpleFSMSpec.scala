@@ -1,9 +1,7 @@
 package compare.fsm.zio.simple
 
-import example.compare.fsm.zio.simple.CounterFSM
 import fsm.zio.Engine
-import zio._
-import zio.test._
+import zio.test.{ ZIOSpecDefault, assertTrue }
 
 object SimpleFSMSpec extends ZIOSpecDefault {
 

@@ -1,7 +1,7 @@
-package example.compare.fsm.zio.simple
+package compare.fsm.zio.simple
 
-import example.compare.fsm.zio.simple.CounterFSM.{ Message, State }
-import example.compare.fsm.zio.simple.CounterFSM.Message.GetStateResponse
+import compare.fsm.zio.simple.CounterFSM.Message.GetStateResponse
+import compare.fsm.zio.simple.CounterFSM.{ Message, State }
 import fsm.zio.{ FSM, FSMContext }
 import zio._
 

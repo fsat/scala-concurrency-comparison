@@ -1,7 +1,7 @@
 package example.compare.fsm.zio.nested.physical
 
 import example.compare.fsm.zio.nested.physical.PhysicalResourceFSM._
-import fsm.zio.{ FSM, FSMContext }
+import fsm.zio.FSMContext
 import zio._
 
 import scala.util.{ Failure, Success }

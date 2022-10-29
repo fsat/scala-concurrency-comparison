@@ -1,15 +1,14 @@
 package example.compare.fsm.zio.nested.physical
 
-import fsm.zio.{ FSM, FSMContext }
-import PhysicalResourceFSM._
 import example.compare.fsm.zio.nested.events.ExampleEvent.PhysicalResourceEvent
 import example.compare.fsm.zio.nested.events.{ EventsAlgebra, EventsInterpreter }
+import example.compare.fsm.zio.nested.physical.PhysicalResourceFSM._
 import example.compare.fsm.zio.nested.physical.interpreter.PhysicalResourceAlgebra.ArtifactDownloadLocation
 import example.compare.fsm.zio.nested.physical.interpreter.{ PhysicalResource, PhysicalResourceAlgebra }
-import zio.stream._
+import fsm.zio.{ FSM, FSMContext }
 import zio._
+import zio.stream._
 
-import java.net.URL
 import scala.util.Try
 
 object PhysicalResourceFSM {
