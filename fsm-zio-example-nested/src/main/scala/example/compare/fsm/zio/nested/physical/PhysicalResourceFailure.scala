@@ -4,7 +4,7 @@ import example.compare.fsm.zio.nested.physical.PhysicalResourceFSM.{ Message, Me
 import fsm.zio.FSMContext
 import zio._
 
-class PhysicalResourceFailureFSM()(implicit deps: RuntimeDependencies) {
+class PhysicalResourceFailure()(implicit deps: RuntimeDependencies) {
 
   private[physical] def apply(state: State.FailureState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     message match {

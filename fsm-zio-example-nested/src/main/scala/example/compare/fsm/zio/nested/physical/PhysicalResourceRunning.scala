@@ -6,7 +6,7 @@ import zio._
 
 import scala.util.{ Failure, Success }
 
-class PhysicalResourceRunningFSM()(implicit deps: RuntimeDependencies) {
+class PhysicalResourceRunning()(implicit deps: RuntimeDependencies) {
   import deps._
 
   private[physical] def apply(state: State.DownloadingArtifactsState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
