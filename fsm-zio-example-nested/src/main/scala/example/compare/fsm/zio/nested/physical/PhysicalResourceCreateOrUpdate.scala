@@ -46,7 +46,12 @@ class PhysicalResourceCreateOrUpdate()(implicit deps: RuntimeDependencies) {
 
   private[physical] def apply(state: State.UpdatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     for {
-      _ <- ctx.pipeToSelfAsync(deps.physicalResource.update(state.request.endpointName, state.request.physicalResource))(MessageSelf.InitialState.PhysicalResourceUpdateComplete)
+      stateWithSetup <- ctx.setup(state, state.isSetupDone) {
+        for {
+          _ <- ctx.pipeToSelfAsync(deps.physicalResource.update(state.request.endpointName, state.request.physicalResource))(MessageSelf.InitialState.PhysicalResourceUpdateComplete)
+        } yield state.copy(isSetupDone = true)
+      }
+
       nextState <- message match {
         case r: MessageSelf.InitialState.PhysicalResourceUpdateComplete =>
           r.result match {
@@ -69,13 +74,13 @@ class PhysicalResourceCreateOrUpdate()(implicit deps: RuntimeDependencies) {
         case r: Message.GetStatusRequest =>
           for {
             _ <- r.replyTo.succeed(Message.GetStatusResponse.Creating())
-          } yield state
+          } yield stateWithSetup
 
         case _: MessageSelf.InitialState.FindEndpointComplete |
           _: MessageSelf.InitialState.PhysicalResourceCreateComplete |
           _: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete |
           _: MessageSelf.DownloadingArtifactsState.DownloadArtifactsComplete =>
-          ZIO.succeed(state)
+          ZIO.succeed(stateWithSetup)
       }
     } yield nextState
 

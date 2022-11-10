@@ -6,13 +6,11 @@ import zio._
 
 class LogicalResourceCreate()(implicit deps: RuntimeDependencies) {
   private[logical] def apply(state: State.CreatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
-    for {
-      nextState <- message match {
-        case m: Message.CreateOrUpdateRequest =>
-          for {
-            _ <- m.replyTo.succeed(Message.CreateOrUpdateResponse.Busy(m))
-          } yield state
-      }
-    } yield nextState
+    message match {
+      case m: Message.CreateOrUpdateRequest =>
+        for {
+          _ <- m.replyTo.succeed(Message.CreateOrUpdateResponse.Busy(m))
+        } yield state
+    }
   }
 }

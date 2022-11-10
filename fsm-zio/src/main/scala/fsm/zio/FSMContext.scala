@@ -20,4 +20,17 @@ class FSMContext[MessageRequest](
         .forkIn(scope)
     } yield ()
   }
+
+  def setup[T](setupValue: T, isSetupDone: Boolean)(callSetup: => UIO[T]): UIO[T] = {
+    if (isSetupDone)
+      ZIO.succeed(setupValue)
+    else
+      callSetup
+  }
+
+  def createFSM[State, MessageRequest](
+    state: State,
+    fsm: FSM[State, MessageRequest],
+    mailboxSize: Int = 32000): Task[FSMRef.Local[MessageRequest]] =
+    Engine.create(state, fsm, mailboxSize)
 }

@@ -8,8 +8,8 @@ import zio.actors.Context
 object SimpleActor {
   object Message {
     final case class GetStateRequest() extends Request[Int]
-    final case class IncrementRequest() extends Request[NoReply]
-    sealed trait Request[+A] extends Message
+    final case class IncrementRequest() extends Request[Unit]
+    sealed trait Request[+_] extends Message
   }
   sealed trait Message extends Product with Serializable
 }
@@ -17,7 +17,7 @@ object SimpleActor {
 class SimpleActor extends Stateful[Any, Int, Message.Request] {
   override def receive[A](state: Int, msg: Message.Request[A], context: Context): UIO[(Int, A)] = {
     msg match {
-      case _: Message.IncrementRequest => ZIO.succeed((state + 1, NoReply))
+      case _: Message.IncrementRequest => ZIO.succeed((state + 1, ()))
       case _: Message.GetStateRequest => ZIO.succeed((state, state))
     }
   }

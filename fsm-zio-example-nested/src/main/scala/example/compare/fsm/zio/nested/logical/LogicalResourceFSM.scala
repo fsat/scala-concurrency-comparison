@@ -28,7 +28,7 @@ object LogicalResourceFSM {
 
   object State {
     final case class InitialState() extends State
-    final case class CreatingState() extends State
+    final case class CreatingState(physicalResource: FSMRef.Local[PhysicalResourceFSM.Message.Request]) extends State
     final case class UpdatingState() extends State
     object RunningState {
       final case class DownloadingPartitionsState(physicalResource: FSMRef.Local[PhysicalResourceFSM.Message.Request]) extends State
@@ -40,7 +40,7 @@ object LogicalResourceFSM {
 
   final case class RuntimeDependencies(
     logicalResource: LogicalResourceAlgebra[Task],
-    events: EventsAlgebra[UIO, EventsInterpreter.ScopedUIO, UStream, LogicalResourceEvent])
+    events: EventsAlgebra[UIO, EventsInterpreter.ScopedUIO, UStream, LogicalResourceEvent])(implicit val physicalResourceDeps: PhysicalResourceFSM.RuntimeDependencies)
 }
 
 class LogicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[State, Message.Request] {
