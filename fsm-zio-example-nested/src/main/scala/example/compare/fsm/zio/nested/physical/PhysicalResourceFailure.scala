@@ -11,8 +11,8 @@ class PhysicalResourceFailure()(implicit deps: RuntimeDependencies) {
       case r: Message.CreateOrUpdateRequest =>
         ZIO.succeed {
           state.existing match {
-            case None => State.CreatingState(r)
-            case Some((id, resource)) => State.UpdatingState(id, resource, r)
+            case None => State.CreatingState(r, isSetupDone = false)
+            case Some((id, resource)) => State.UpdatingState(id, resource, r, isSetupDone = false)
           }
         }
 

@@ -12,7 +12,7 @@ class PhysicalResourceInitial()(implicit deps: RuntimeDependencies) {
   private[physical] def apply(state: State.InitialState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     message match {
       case r: Message.CreateOrUpdateRequest =>
-        ZIO.succeed(State.InitialState.FindEndpointState(r))
+        ZIO.succeed(State.InitialState.FindEndpointState(r, isSetupDone = false))
 
       case r: Message.GetStatusRequest =>
         for {
@@ -30,12 +30,20 @@ class PhysicalResourceInitial()(implicit deps: RuntimeDependencies) {
 
   private[physical] def apply(state: State.InitialState.FindEndpointState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     for {
-      _ <- ctx.pipeToSelfAsync(physicalResource.find(state.request.endpointName))(MessageSelf.InitialState.FindEndpointComplete)
+      _ <- ctx.setup(state, state.isSetupDone) {
+        for {
+          _ <- ctx.pipeToSelfAsync(physicalResource.find(state.request.endpointName))(MessageSelf.InitialState.FindEndpointComplete)
+        } yield state.copy(isSetupDone = true)
+      }
       nextState <- message match {
         case r: MessageSelf.InitialState.FindEndpointComplete =>
           r.result match {
-            case Success(Some((existingResourceId, existingResouce))) => ZIO.succeed(State.UpdatingState(existingResourceId, existingResouce, state.request))
-            case Success(None) => ZIO.succeed(State.CreatingState(state.request))
+            case Success(Some((existingResourceId, existingResouce))) =>
+              // TODO: we need fast reply here
+              ZIO.succeed(State.UpdatingState(existingResourceId, existingResouce, state.request, isSetupDone = false))
+            case Success(None) =>
+              // TODO: we need fast reply here
+              ZIO.succeed(State.CreatingState(state.request, isSetupDone = false))
             case Failure(e) =>
               for {
                 _ <- state.request.replyTo.fail(e)

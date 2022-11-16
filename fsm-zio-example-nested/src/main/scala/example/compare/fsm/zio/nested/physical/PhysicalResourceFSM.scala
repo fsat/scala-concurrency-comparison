@@ -56,16 +56,23 @@ object PhysicalResourceFSM {
 
   object State {
     object InitialState {
-      final case class FindEndpointState(request: Message.CreateOrUpdateRequest) extends State
+      final case class FindEndpointState(
+        request: Message.CreateOrUpdateRequest,
+        isSetupDone: Boolean) extends State
     }
     final case class InitialState() extends State
-    final case class CreatingState(request: Message.CreateOrUpdateRequest) extends State
+    final case class CreatingState(
+      request: Message.CreateOrUpdateRequest,
+      isSetupDone: Boolean) extends State
     final case class UpdatingState(
       id: PhysicalResource.Id,
       existing: PhysicalResource,
       request: Message.CreateOrUpdateRequest,
       isSetupDone: Boolean) extends State
-    final case class DownloadingArtifactsState(id: PhysicalResource.Id, physicalResource: PhysicalResource) extends State
+    final case class DownloadingArtifactsState(
+      id: PhysicalResource.Id,
+      physicalResource: PhysicalResource,
+      isSetupDone: Boolean) extends State
     final case class RunningState(id: PhysicalResource.Id, physicalResource: PhysicalResource) extends State
     final case class FailureState(error: Throwable, existing: Option[(PhysicalResource.Id, PhysicalResource)]) extends State
   }

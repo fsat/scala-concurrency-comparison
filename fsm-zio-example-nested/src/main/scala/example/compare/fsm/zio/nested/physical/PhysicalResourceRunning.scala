@@ -34,7 +34,11 @@ class PhysicalResourceRunning()(implicit deps: RuntimeDependencies) {
     }
 
     for {
-      _ <- ctx.pipeToSelfAsync(downloadArtifacts())(MessageSelf.DownloadingArtifactsState.DownloadArtifactsComplete)
+      _ <- ctx.setup(state, state.isSetupDone) {
+        for {
+          _ <- ctx.pipeToSelfAsync(downloadArtifacts())(MessageSelf.DownloadingArtifactsState.DownloadArtifactsComplete)
+        } yield state.copy(isSetupDone = true)
+      }
       nextState <- message match {
         case r: MessageSelf.DownloadingArtifactsState.DownloadSingleArtifactComplete =>
           // TODO: event + logs
@@ -73,7 +77,7 @@ class PhysicalResourceRunning()(implicit deps: RuntimeDependencies) {
   private[physical] def apply(state: State.RunningState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     message match {
       case r: Message.CreateOrUpdateRequest =>
-        ZIO.succeed(State.UpdatingState(state.id, state.physicalResource, r))
+        ZIO.succeed(State.UpdatingState(state.id, state.physicalResource, r, isSetupDone = false))
 
       case r: Message.GetStatusRequest =>
         for {

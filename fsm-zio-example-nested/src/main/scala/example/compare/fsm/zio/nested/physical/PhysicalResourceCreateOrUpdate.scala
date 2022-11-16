@@ -10,14 +10,19 @@ class PhysicalResourceCreateOrUpdate()(implicit deps: RuntimeDependencies) {
 
   private[physical] def apply(state: State.CreatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
     for {
-      _ <- ctx.pipeToSelfAsync(deps.physicalResource.create(state.request.endpointName, state.request.physicalResource))(MessageSelf.InitialState.PhysicalResourceCreateComplete)
+      _ <- ctx.setup(state, state.isSetupDone) {
+        for {
+          _ <- ctx.pipeToSelfAsync(deps.physicalResource.create(state.request.endpointName, state.request.physicalResource))(MessageSelf.InitialState.PhysicalResourceCreateComplete)
+        } yield state.copy(isSetupDone = true)
+      }
+
       nextState <- message match {
         case r: MessageSelf.InitialState.PhysicalResourceCreateComplete =>
           r.result match {
             case Success(pid) =>
               for {
                 _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Creating(pid))
-              } yield State.DownloadingArtifactsState(pid, state.request.physicalResource)
+              } yield State.DownloadingArtifactsState(pid, state.request.physicalResource, isSetupDone = false)
 
             case Failure(error) =>
               for {
@@ -58,7 +63,7 @@ class PhysicalResourceCreateOrUpdate()(implicit deps: RuntimeDependencies) {
             case Success(pid) =>
               for {
                 _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Updating(pid))
-              } yield State.DownloadingArtifactsState(pid, state.request.physicalResource)
+              } yield State.DownloadingArtifactsState(pid, state.request.physicalResource, isSetupDone = false)
 
             case Failure(error) =>
               for {

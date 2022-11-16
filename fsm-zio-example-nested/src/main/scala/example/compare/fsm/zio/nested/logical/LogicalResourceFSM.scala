@@ -28,7 +28,10 @@ object LogicalResourceFSM {
 
   object State {
     final case class InitialState() extends State
-    final case class CreatingState(physicalResource: FSMRef.Local[PhysicalResourceFSM.Message.Request]) extends State
+    final case class CreatingState(
+      request: Message.CreateOrUpdateRequest,
+      physicalResource: FSMRef.Local[PhysicalResourceFSM.Message.Request],
+      isSetup: Boolean) extends State
     final case class UpdatingState() extends State
     object RunningState {
       final case class DownloadingPartitionsState(physicalResource: FSMRef.Local[PhysicalResourceFSM.Message.Request]) extends State
