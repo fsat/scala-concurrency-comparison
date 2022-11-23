@@ -57,7 +57,7 @@ class PhysicalResourceRunning()(implicit deps: RuntimeDependencies) {
 
         case r: Message.CreateOrUpdateRequest =>
           for {
-            _ <- r.replyTo.succeed(Message.CreateOrUpdateResponse.Busy())
+            _ <- r.replyTo.tell(Message.CreateOrUpdateResponse.Busy())
           } yield state
 
         case r: Message.GetStatusRequest =>

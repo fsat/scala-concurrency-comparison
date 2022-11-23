@@ -21,18 +21,18 @@ class PhysicalResourceCreateOrUpdate()(implicit deps: RuntimeDependencies) {
           r.result match {
             case Success(pid) =>
               for {
-                _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Creating(pid))
+                _ <- state.request.replyTo.tell(Message.CreateOrUpdateResponse.Creating(pid))
               } yield State.DownloadingArtifactsState(pid, state.request.physicalResource, isSetupDone = false)
 
             case Failure(error) =>
               for {
-                _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Failure(error))
+                _ <- state.request.replyTo.tell(Message.CreateOrUpdateResponse.Failure(error))
               } yield State.FailureState(error, None)
           }
 
         case r: Message.CreateOrUpdateRequest =>
           for {
-            _ <- r.replyTo.succeed(Message.CreateOrUpdateResponse.Busy())
+            _ <- r.replyTo.tell(Message.CreateOrUpdateResponse.Busy())
           } yield state
 
         case r: Message.GetStatusRequest =>
@@ -62,18 +62,18 @@ class PhysicalResourceCreateOrUpdate()(implicit deps: RuntimeDependencies) {
           r.result match {
             case Success(pid) =>
               for {
-                _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Updating(pid))
+                _ <- state.request.replyTo.tell(Message.CreateOrUpdateResponse.Updating(pid))
               } yield State.DownloadingArtifactsState(pid, state.request.physicalResource, isSetupDone = false)
 
             case Failure(error) =>
               for {
-                _ <- state.request.replyTo.succeed(Message.CreateOrUpdateResponse.Failure(error))
+                _ <- state.request.replyTo.tell(Message.CreateOrUpdateResponse.Failure(error))
               } yield State.FailureState(error, Some((state.id, state.existing)))
           }
 
         case r: Message.CreateOrUpdateRequest =>
           for {
-            _ <- r.replyTo.succeed(Message.CreateOrUpdateResponse.Busy())
+            _ <- r.replyTo.tell(Message.CreateOrUpdateResponse.Busy())
           } yield state
 
         case r: Message.GetStatusRequest =>

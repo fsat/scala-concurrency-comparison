@@ -16,13 +16,14 @@ class LogicalResourceInitial()(implicit deps: RuntimeDependencies) {
           _ <- m.replyTo.succeed(Message.CreateOrUpdateResponse.Accepted(m))
         } yield State.CreatingState(m, physicalResourceFSM, isSetup = false)
 
-        // TODO: error handling how?
-        attempt.flatMapError { err =>
-          for {
-            _ <- m.replyTo.fail(err)
-            // TODO: logging + event
-          } yield state
-        }
+        //        // TODO: error handling how?
+        //        attempt.flatMapError { err =>
+        //          for {
+        //            _ <- m.replyTo.fail(err)
+        //            // TODO: logging + event
+        //          } yield state
+        //        }
+        attempt
     }
   }
 }

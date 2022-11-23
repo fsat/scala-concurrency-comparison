@@ -5,7 +5,7 @@ import example.compare.fsm.zio.nested.events.{ EventsAlgebra, EventsInterpreter 
 import example.compare.fsm.zio.nested.physical.PhysicalResourceFSM._
 import example.compare.fsm.zio.nested.physical.interpreter.PhysicalResourceAlgebra.ArtifactDownloadLocation
 import example.compare.fsm.zio.nested.physical.interpreter.{ PhysicalResource, PhysicalResourceAlgebra }
-import fsm.zio.{ FSM, FSMContext }
+import fsm.zio.{ FSM, FSMContext, FSMRef }
 import zio._
 import zio.stream._
 
@@ -16,7 +16,7 @@ object PhysicalResourceFSM {
     final case class CreateOrUpdateRequest(
       endpointName: String,
       physicalResource: PhysicalResource,
-      replyTo: Promise[Throwable, CreateOrUpdateResponse]) extends Request
+      replyTo: FSMRef[CreateOrUpdateResponse]) extends Request
     object CreateOrUpdateResponse {
       final case class Creating(id: PhysicalResource.Id) extends CreateOrUpdateResponse
       final case class Updating(id: PhysicalResource.Id) extends CreateOrUpdateResponse

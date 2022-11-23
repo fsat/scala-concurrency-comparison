@@ -24,6 +24,12 @@ object LogicalResourceFSM {
 
     sealed trait Request extends Message
   }
+  object MessageSelf {
+    object FromPhysicalResourceFSM {
+      final case class CreateOrUpdateResponse(payload: PhysicalResourceFSM.Message.CreateOrUpdateResponse) extends MessageSelf
+    }
+  }
+  sealed trait MessageSelf extends Message.Request
   sealed trait Message extends Product with Serializable
 
   object State {

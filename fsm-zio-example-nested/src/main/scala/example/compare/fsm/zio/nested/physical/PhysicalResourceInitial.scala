@@ -46,13 +46,13 @@ class PhysicalResourceInitial()(implicit deps: RuntimeDependencies) {
               ZIO.succeed(State.CreatingState(state.request, isSetupDone = false))
             case Failure(e) =>
               for {
-                _ <- state.request.replyTo.fail(e)
+                _ <- state.request.replyTo.tell(Message.CreateOrUpdateResponse.Failure(e))
               } yield State.FailureState(e, None)
           }
 
         case r: Message.CreateOrUpdateRequest =>
           for {
-            _ <- r.replyTo.succeed(Message.CreateOrUpdateResponse.Busy())
+            _ <- r.replyTo.tell(Message.CreateOrUpdateResponse.Busy())
           } yield state
 
         case r: Message.GetStatusRequest =>
