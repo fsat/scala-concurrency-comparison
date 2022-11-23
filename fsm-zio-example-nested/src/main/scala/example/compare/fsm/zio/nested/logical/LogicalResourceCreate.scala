@@ -31,6 +31,8 @@ class LogicalResourceCreate()(implicit deps: RuntimeDependencies) {
       }
 
       result <- message match {
+        case m: MessageSelf.FromPhysicalResourceFSM.CreateOrUpdateResponse =>
+          ???
         case m: Message.CreateOrUpdateRequest =>
           for {
             _ <- m.replyTo.succeed(Message.CreateOrUpdateResponse.Busy(m))

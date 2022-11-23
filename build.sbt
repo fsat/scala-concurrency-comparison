@@ -30,6 +30,7 @@ lazy val Libraries = new {
 }
 
 ThisBuild / scalaVersion := Versions.scalaVersion
+ThisBuild / scalacOptions += "-Xfatal-warnings"
 
 ThisBuild / organization := "au.id.fsat"
 ThisBuild / organizationName := "Felix Satyaputra"

@@ -1,6 +1,6 @@
 package example.compare.fsm.zio.nested.logical
 
-import example.compare.fsm.zio.nested.logical.LogicalResourceFSM.{ Message, RuntimeDependencies, State }
+import example.compare.fsm.zio.nested.logical.LogicalResourceFSM.{ Message, MessageSelf, RuntimeDependencies, State }
 import example.compare.fsm.zio.nested.physical.PhysicalResourceFSM
 import fsm.zio.FSMContext
 import zio._
@@ -15,6 +15,9 @@ class LogicalResourceInitial()(implicit deps: RuntimeDependencies) {
           physicalResourceFSM <- ctx.createFSM(PhysicalResourceFSM.State.InitialState(), new PhysicalResourceFSM())
           _ <- m.replyTo.succeed(Message.CreateOrUpdateResponse.Accepted(m))
         } yield State.CreatingState(m, physicalResourceFSM, isSetup = false)
+
+      case _: MessageSelf.FromPhysicalResourceFSM.CreateOrUpdateResponse =>
+        ZIO.succeed(state)
     }
   }
 }
