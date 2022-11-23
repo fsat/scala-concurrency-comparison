@@ -13,7 +13,7 @@ object Engine {
   def create[State, MessageRequest](
     state: State,
     fsm: FSM[State, MessageRequest],
-    mailboxSize: Int = 32000): Task[FSMRef.Local[MessageRequest]] = {
+    mailboxSize: Int = 32000): UIO[FSMRef.Local[MessageRequest]] = {
     for {
       mailbox <- Queue.dropping[PendingMessage](mailboxSize)
       s <- Ref.make(state)
