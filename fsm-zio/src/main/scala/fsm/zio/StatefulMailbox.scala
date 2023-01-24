@@ -20,20 +20,15 @@ object StatefulMailbox {
       statefulMailbox = new StatefulMailbox[State, MessageRequest](messageQueue, s)
 
       // Run the queue processing loop in parallel in the background
-      parallelScope <- Scope.makeWith(ExecutionStrategy.Parallel)
-      loopFiber <- processMessage(statefulMailbox, fsm)
-        .forever
-        .forkIn(parallelScope)
-
-      processingLoop = new ProcessingLoop(statefulMailbox, fsm, loopFiber)
+      processingLoop <- processMessage(statefulMailbox, fsm)
     } yield new FSMRef.Local(processingLoop)
   }
 
   private def processMessage[State, MessageRequest](
     mailbox: StatefulMailbox[State, MessageRequest],
-    fsm: FSM[State, MessageRequest]): Task[Unit] = {
+    fsm: FSM[State, MessageRequest]): UIO[ProcessingLoop[State, MessageRequest]] = {
     import mailbox._
-    val t = for {
+    val processSingleMessage = for {
       ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(mailbox)))
       pendingMessage <- messageQueue.take
       s <- state.get
@@ -44,7 +39,10 @@ object StatefulMailbox {
       _ <- state.set(stateNext)
     } yield ()
 
-    t
+    for {
+      parallelScope <- Scope.makeWith(ExecutionStrategy.Parallel)
+      processingLoopFiber <- processSingleMessage.forever.forkIn(parallelScope)
+    } yield new ProcessingLoop(mailbox, fsm, processingLoopFiber)
   }
 
 }
