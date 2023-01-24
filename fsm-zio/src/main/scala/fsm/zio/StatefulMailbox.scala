@@ -15,23 +15,27 @@ object StatefulMailbox {
     fsm: FSM[State, MessageRequest],
     mailboxSize: Int = 32000): UIO[FSMRef.Local[MessageRequest]] = {
     for {
-      mailbox <- Queue.dropping[PendingMessage](mailboxSize)
+      messageQueue <- Queue.dropping[PendingMessage](mailboxSize)
       s <- Ref.make(state)
-      engine = new StatefulMailbox(mailbox, s, fsm)
+      statefulMailbox = new StatefulMailbox[State, MessageRequest](messageQueue, s)
 
       // Run the queue processing loop in parallel in the background
       parallelScope <- Scope.makeWith(ExecutionStrategy.Parallel)
-      _ <- processMessage(engine)
+      loopFiber <- processMessage(statefulMailbox, fsm)
         .forever
         .forkIn(parallelScope)
-    } yield new FSMRef.Local(engine)
+
+      processingLoop = new ProcessingLoop(statefulMailbox, fsm, loopFiber)
+    } yield new FSMRef.Local(processingLoop)
   }
 
-  private def processMessage[State, MessageRequest](engine: StatefulMailbox[State, MessageRequest]): Task[Unit] = {
-    import engine._
+  private def processMessage[State, MessageRequest](
+    mailbox: StatefulMailbox[State, MessageRequest],
+    fsm: FSM[State, MessageRequest]): Task[Unit] = {
+    import mailbox._
     val t = for {
-      ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(engine)))
-      pendingMessage <- mailbox.take
+      ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(mailbox)))
+      pendingMessage <- messageQueue.take
       s <- state.get
       stateNext <- pendingMessage match {
         case m: PendingMessage.Tell[MessageRequest @unchecked] => fsm.apply(s, m.request, ctx)
@@ -46,13 +50,12 @@ object StatefulMailbox {
 }
 
 class StatefulMailbox[State, MessageRequest](
-  private[zio] val mailbox: Queue[PendingMessage],
-  private[zio] val state: Ref[State],
-  private[zio] val fsm: FSM[State, MessageRequest]) {
+  private[zio] val messageQueue: Queue[PendingMessage],
+  private[zio] val state: Ref[State]) {
 
   private[zio] def tell(message: MessageRequest): UIO[Unit] = {
     for {
-      _ <- mailbox.offer(PendingMessage.Tell(message))
+      _ <- messageQueue.offer(PendingMessage.Tell(message))
     } yield ()
   }
 
@@ -60,15 +63,15 @@ class StatefulMailbox[State, MessageRequest](
     for {
       p <- Promise.make[Throwable, MessageResponse]
       m <- ZIO.attempt(createMessage(p))
-      _ <- mailbox.offer(PendingMessage.Ask(m))
+      _ <- messageQueue.offer(PendingMessage.Ask(m))
       result <- p.await
     } yield result
   }
 
   def stop(): UIO[Unit] = {
     for {
-      _ <- mailbox.takeAll
-      _ <- mailbox.shutdown
+      _ <- messageQueue.takeAll
+      _ <- messageQueue.shutdown
     } yield ()
   }
 }
