@@ -1,6 +1,6 @@
 package compare.fsm.zio.simple
 
-import fsm.zio.Engine
+import fsm.zio.StatefulMailbox
 import zio.test.{ ZIOSpecDefault, assertTrue }
 
 object SimpleFSMSpec extends ZIOSpecDefault {
@@ -8,7 +8,7 @@ object SimpleFSMSpec extends ZIOSpecDefault {
   override def spec = suite("simple fsm")(
     test("increments the counter") {
       for {
-        engine <- Engine.create(CounterFSM.State.Counter(0), new CounterFSM)
+        engine <- StatefulMailbox.create(CounterFSM.State.Counter(0), new CounterFSM)
 
         getStateResponse1 <- engine.ask(CounterFSM.Message.GetStateRequest)
         _ <- assertTrue(getStateResponse1 == CounterFSM.Message.GetStateResponse(0))
@@ -21,7 +21,7 @@ object SimpleFSMSpec extends ZIOSpecDefault {
     },
     test("self message to increment the counter") {
       for {
-        engine <- Engine.create(CounterFSM.State.Counter(0), new CounterFSM)
+        engine <- StatefulMailbox.create(CounterFSM.State.Counter(0), new CounterFSM)
 
         getStateResponse1 <- engine.ask(CounterFSM.Message.GetStateRequest)
         _ <- assertTrue(getStateResponse1 == CounterFSM.Message.GetStateResponse(0))

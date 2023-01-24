@@ -1,9 +1,9 @@
 package fsm.zio
 
-import fsm.zio.Engine.PendingMessage
+import fsm.zio.StatefulMailbox.PendingMessage
 import zio._
 
-object Engine {
+object StatefulMailbox {
   object PendingMessage {
     final case class Tell[MessageRequest](request: MessageRequest) extends PendingMessage
     final case class Ask[MessageRequest](request: MessageRequest) extends PendingMessage
@@ -17,7 +17,7 @@ object Engine {
     for {
       mailbox <- Queue.dropping[PendingMessage](mailboxSize)
       s <- Ref.make(state)
-      engine = new Engine(mailbox, s, fsm)
+      engine = new StatefulMailbox(mailbox, s, fsm)
 
       // Run the queue processing loop in parallel in the background
       parallelScope <- Scope.makeWith(ExecutionStrategy.Parallel)
@@ -27,7 +27,7 @@ object Engine {
     } yield new FSMRef.Local(engine)
   }
 
-  private def processMessage[State, MessageRequest](engine: Engine[State, MessageRequest]): Task[Unit] = {
+  private def processMessage[State, MessageRequest](engine: StatefulMailbox[State, MessageRequest]): Task[Unit] = {
     import engine._
     val t = for {
       ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(engine)))
@@ -45,7 +45,7 @@ object Engine {
 
 }
 
-class Engine[State, MessageRequest](
+class StatefulMailbox[State, MessageRequest](
   private[zio] val mailbox: Queue[PendingMessage],
   private[zio] val state: Ref[State],
   private[zio] val fsm: FSM[State, MessageRequest]) {
