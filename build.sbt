@@ -105,6 +105,7 @@ lazy val `fsm-zio-example-nested` = project
 lazy val `actors-zio` = project
   .in(file("actors-zio"))
   .settings(Seq(
+    scalacOptions := Seq("-unchecked", "-deprecation"),
     libraryDependencies ++= Libraries.zioProjectLibraries,
     Test / parallelExecution := false,
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
