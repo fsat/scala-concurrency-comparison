@@ -26,23 +26,29 @@ object StatefulMailbox {
 
   private def processMessage[State, MessageRequest](
     mailbox: StatefulMailbox[State, MessageRequest],
-    fsm: FSM[State, MessageRequest]): UIO[ProcessingLoop[State, MessageRequest]] = {
+    fsm: FSM[State, MessageRequest]): UIO[ProcessingLoop[MessageRequest]] = {
     import mailbox._
-    val processSingleMessage = for {
-      ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(mailbox)))
-      pendingMessage <- messageQueue.take
-      s <- state.get
-      stateNext <- pendingMessage match {
-        case m: PendingMessage.Tell[MessageRequest @unchecked] => fsm.apply(s, m.request, ctx)
-        case m: PendingMessage.Ask[MessageRequest @unchecked] => fsm.apply(s, m.request, ctx)
-      }
-      _ <- state.set(stateNext)
-    } yield ()
+    def processSingleMessage(processingLoopRef: Ref[Option[ProcessingLoop[MessageRequest]]]): UIO[Unit] =
+      for {
+        ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(mailbox, processingLoopRef)))
+        pendingMessage <- messageQueue.take
+        s <- state.get
+        stateNext <- pendingMessage match {
+          case m: PendingMessage.Tell[MessageRequest @unchecked] => fsm.apply(s, m.request, ctx)
+          case m: PendingMessage.Ask[MessageRequest @unchecked] => fsm.apply(s, m.request, ctx)
+        }
+        _ <- state.set(stateNext)
+      } yield ()
 
     for {
+      processingLoopRef <- Ref.make(Option.empty[ProcessingLoop[MessageRequest]])
+
       parallelScope <- Scope.makeWith(ExecutionStrategy.Parallel)
-      processingLoopFiber <- processSingleMessage.forever.forkIn(parallelScope)
-    } yield new ProcessingLoop(mailbox, fsm, processingLoopFiber)
+      processingLoopFiber <- processSingleMessage(processingLoopRef).forever.forkIn(parallelScope)
+
+      processingLoop = new ProcessingLoop(mailbox, fsm, processingLoopFiber)
+      _ <- processingLoopRef.set(Some(processingLoop))
+    } yield processingLoop
   }
 
 }

@@ -1,9 +1,9 @@
 package fsm.zio
 
-import zio.{ Promise, Task, UIO }
+import zio.{ Promise, Ref, Task, UIO, ZIO }
 
 object FSMRef {
-  class Local[MessageRequest](processingLoop: ProcessingLoop[_, MessageRequest]) extends FSMRef[MessageRequest] {
+  class Local[MessageRequest](processingLoop: ProcessingLoop[MessageRequest]) extends FSMRef[MessageRequest] {
     import processingLoop.mailbox
 
     def tell(message: MessageRequest): UIO[Unit] =
@@ -14,16 +14,26 @@ object FSMRef {
 
     def map[B](fn: B => MessageRequest): FSMRef[B] = new Map(this, fn)
 
-    def stop(): UIO[Unit] = mailbox.stop()
+    def stop(): UIO[Unit] = processingLoop.stop()
   }
 
-  class Self[MessageRequest](mailbox: StatefulMailbox[_, MessageRequest]) extends FSMRef[MessageRequest] {
+  class Self[MessageRequest](
+    mailbox: StatefulMailbox[_, MessageRequest],
+    processingLoopRef: Ref[Option[ProcessingLoop[MessageRequest]]]) extends FSMRef[MessageRequest] {
     def tell(message: MessageRequest): UIO[Unit] =
       mailbox.tell(message)
 
     def map[B](fn: B => MessageRequest): FSMRef[B] = new Map(this, fn)
 
-    def stop(): UIO[Unit] = mailbox.stop()
+    def stop(): UIO[Unit] = {
+      for {
+        processingLoop <- processingLoopRef.get
+        _ <- processingLoop match {
+          case None => ZIO.succeed(())
+          case Some(v) => v.stop()
+        }
+      } yield ()
+    }
   }
 
   class Map[T, MessageRequest](ref: FSMRef[MessageRequest], transform: T => MessageRequest) extends FSMRef[T] {
