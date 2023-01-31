@@ -6,7 +6,7 @@ import zio._
 
 class PhysicalResourceFailure()(implicit deps: RuntimeDependencies) {
 
-  private[physical] def apply(state: State.FailureState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[physical] def apply(state: State.FailureState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     message match {
       case r: Message.CreateOrUpdateRequest =>
         ZIO.succeed {

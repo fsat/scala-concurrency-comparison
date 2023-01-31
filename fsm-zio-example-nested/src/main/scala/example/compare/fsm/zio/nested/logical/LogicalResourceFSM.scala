@@ -6,7 +6,7 @@ import example.compare.fsm.zio.nested.logical.LogicalResourceFSM.{ Message, Runt
 import example.compare.fsm.zio.nested.logical.interpreter.{ LogicalResource, LogicalResourceAlgebra }
 import example.compare.fsm.zio.nested.physical.PhysicalResourceFSM
 import fsm.zio.{ FSM, FSMContext, FSMRef }
-import zio.{ Promise, Task, UIO }
+import zio._
 import zio.stream.UStream
 
 object LogicalResourceFSM {
@@ -53,7 +53,7 @@ object LogicalResourceFSM {
 }
 
 class LogicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[State, Message.Request] {
-  override def apply(state: State, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  override def apply(state: State, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     import deps._
 
     for {

@@ -13,8 +13,8 @@ object StatefulMailbox {
   def create[State, MessageRequest](
     state: State,
     fsm: FSM[State, MessageRequest],
-    mailboxSize: Int = 32000): UIO[FSMRef.Local[MessageRequest]] = {
-    for {
+    mailboxSize: Int = 32000): URIO[Scope, FSMRef.Local[MessageRequest]] = {
+    val localRef = for {
       messageQueue <- Queue.dropping[PendingMessage](mailboxSize)
       s <- Ref.make(state)
       statefulMailbox = new StatefulMailbox[State, MessageRequest](messageQueue, s)
@@ -22,13 +22,15 @@ object StatefulMailbox {
       // Run the queue processing loop in parallel in the background
       processingLoop <- processMessage(statefulMailbox, fsm)
     } yield new FSMRef.Local(processingLoop)
+
+    ZIO.acquireRelease(localRef)(ref => ref.stop())
   }
 
   private def processMessage[State, MessageRequest](
     mailbox: StatefulMailbox[State, MessageRequest],
-    fsm: FSM[State, MessageRequest]): UIO[ProcessingLoop[MessageRequest]] = {
+    fsm: FSM[State, MessageRequest]): URIO[Scope, ProcessingLoop[MessageRequest]] = {
     import mailbox._
-    def processSingleMessage(processingLoopRef: Ref[Option[ProcessingLoop[MessageRequest]]]): UIO[Unit] =
+    def processSingleMessage(processingLoopRef: Ref[Option[ProcessingLoop[MessageRequest]]]): URIO[Scope, Unit] =
       for {
         ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(mailbox, processingLoopRef)))
         pendingMessage <- messageQueue.take

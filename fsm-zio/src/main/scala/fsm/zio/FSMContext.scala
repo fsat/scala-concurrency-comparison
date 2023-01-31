@@ -31,6 +31,6 @@ class FSMContext[MessageRequest](
   def createFSM[State, MessageRequest](
     state: State,
     fsm: FSM[State, MessageRequest],
-    mailboxSize: Int = 32000): UIO[FSMRef.Local[MessageRequest]] =
+    mailboxSize: Int = 32000): URIO[Scope, FSMRef.Local[MessageRequest]] =
     StatefulMailbox.create(state, fsm, mailboxSize)
 }

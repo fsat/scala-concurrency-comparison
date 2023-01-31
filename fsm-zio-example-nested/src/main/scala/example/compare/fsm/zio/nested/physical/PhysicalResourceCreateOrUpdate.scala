@@ -8,7 +8,7 @@ import scala.util.{ Failure, Success }
 
 class PhysicalResourceCreateOrUpdate()(implicit deps: RuntimeDependencies) {
 
-  private[physical] def apply(state: State.CreatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[physical] def apply(state: State.CreatingState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     for {
       _ <- ctx.setup(state, state.isSetupDone) {
         for {
@@ -49,7 +49,7 @@ class PhysicalResourceCreateOrUpdate()(implicit deps: RuntimeDependencies) {
     } yield nextState
   }
 
-  private[physical] def apply(state: State.UpdatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[physical] def apply(state: State.UpdatingState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     for {
       stateWithSetup <- ctx.setup(state, state.isSetupDone) {
         for {

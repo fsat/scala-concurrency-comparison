@@ -5,7 +5,7 @@ import fsm.zio.FSMContext
 import zio._
 
 class LogicalResourceUpdate()(implicit deps: RuntimeDependencies) {
-  private[logical] def apply(state: State.UpdatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[logical] def apply(state: State.UpdatingState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     message match {
       case m: Message.CreateOrUpdateRequest =>
         for {

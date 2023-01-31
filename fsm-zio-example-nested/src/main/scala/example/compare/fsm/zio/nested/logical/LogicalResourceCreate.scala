@@ -16,7 +16,7 @@ object LogicalResourceCreate {
 }
 
 class LogicalResourceCreate()(implicit deps: RuntimeDependencies) {
-  private[logical] def apply(state: State.CreatingState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[logical] def apply(state: State.CreatingState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     for {
       nextState <- ctx.setup(state, state.isSetup) {
         val endpointName = state.request.endpointName

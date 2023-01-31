@@ -87,7 +87,7 @@ object PhysicalResourceFSM {
 class PhysicalResourceFSM()(implicit deps: RuntimeDependencies) extends FSM[State, Message.Request] {
   import deps._
 
-  override def apply(state: State, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  override def apply(state: State, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     for {
       nextState <- state match {
         case s: State.InitialState => new PhysicalResourceInitial().apply(s, message, ctx)

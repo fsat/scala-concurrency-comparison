@@ -5,7 +5,7 @@ import fsm.zio.FSMContext
 import zio._
 
 class LogicalResourceRunning()(implicit deps: RuntimeDependencies) {
-  private[logical] def apply(state: State.RunningState.DownloadingPartitionsState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[logical] def apply(state: State.RunningState.DownloadingPartitionsState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     message match {
       case m: Message.CreateOrUpdateRequest =>
         for {
@@ -16,7 +16,7 @@ class LogicalResourceRunning()(implicit deps: RuntimeDependencies) {
         ZIO.succeed(state)
     }
   }
-  private[logical] def apply(state: State.RunningState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[logical] def apply(state: State.RunningState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     message match {
       case m: Message.CreateOrUpdateRequest =>
         // TODO

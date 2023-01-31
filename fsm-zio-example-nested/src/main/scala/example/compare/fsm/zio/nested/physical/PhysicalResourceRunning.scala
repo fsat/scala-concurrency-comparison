@@ -9,7 +9,7 @@ import scala.util.{ Failure, Success }
 class PhysicalResourceRunning()(implicit deps: RuntimeDependencies) {
   import deps._
 
-  private[physical] def apply(state: State.DownloadingArtifactsState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[physical] def apply(state: State.DownloadingArtifactsState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     def downloadArtifacts(): Task[Int] = {
       for {
         artifacts <- physicalResource.listArtifacts(state.physicalResource)
@@ -74,7 +74,7 @@ class PhysicalResourceRunning()(implicit deps: RuntimeDependencies) {
     } yield nextState
   }
 
-  private[physical] def apply(state: State.RunningState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[physical] def apply(state: State.RunningState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     message match {
       case r: Message.CreateOrUpdateRequest =>
         ZIO.succeed(State.UpdatingState(state.id, state.physicalResource, r, isSetupDone = false))

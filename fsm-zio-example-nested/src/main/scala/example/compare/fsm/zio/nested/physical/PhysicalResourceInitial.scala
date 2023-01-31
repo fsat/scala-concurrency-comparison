@@ -9,7 +9,7 @@ import scala.util.{ Failure, Success }
 class PhysicalResourceInitial()(implicit deps: RuntimeDependencies) {
   import deps._
 
-  private[physical] def apply(state: State.InitialState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[physical] def apply(state: State.InitialState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     message match {
       case r: Message.CreateOrUpdateRequest =>
         ZIO.succeed(State.InitialState.FindEndpointState(r, isSetupDone = false))
@@ -28,7 +28,7 @@ class PhysicalResourceInitial()(implicit deps: RuntimeDependencies) {
     }
   }
 
-  private[physical] def apply(state: State.InitialState.FindEndpointState, message: Message.Request, ctx: FSMContext[Message.Request]): UIO[State] = {
+  private[physical] def apply(state: State.InitialState.FindEndpointState, message: Message.Request, ctx: FSMContext[Message.Request]): URIO[Scope, State] = {
     for {
       _ <- ctx.setup(state, state.isSetupDone) {
         for {
