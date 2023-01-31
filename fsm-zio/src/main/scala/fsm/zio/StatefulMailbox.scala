@@ -32,7 +32,8 @@ object StatefulMailbox {
     import mailbox._
     def processSingleMessage(processingLoopRef: Ref[Option[ProcessingLoop[MessageRequest]]]): URIO[Scope, Unit] =
       for {
-        ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(mailbox, processingLoopRef)))
+        children <- Ref.make(List.empty[FSMRef.Local[_]])
+        ctx <- ZIO.succeed(new FSMContext(new FSMRef.Self(mailbox, processingLoopRef), children))
         pendingMessage <- messageQueue.take
         s <- state.get
         stateNext <- pendingMessage match {
@@ -76,8 +77,16 @@ class StatefulMailbox[State, MessageRequest](
 
   def stop(): UIO[Unit] = {
     for {
-      _ <- messageQueue.takeAll
-      _ <- messageQueue.shutdown
+      isAlreadyShutdown <- messageQueue.isShutdown
+      _ <- if (isAlreadyShutdown)
+        ZIO.succeed(())
+      else
+        for {
+          _ <- messageQueue.takeAll
+          _ <- messageQueue.shutdown
+        } yield ()
     } yield ()
   }
+
+  def isStopped(): UIO[Boolean] = messageQueue.isShutdown
 }

@@ -12,4 +12,6 @@ class ProcessingLoop[MessageRequest](
       _ <- loopFiber.interrupt
     } yield ()
   }
+
+  def isStopped(): UIO[Boolean] = mailbox.isStopped()
 }

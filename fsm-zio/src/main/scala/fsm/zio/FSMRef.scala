@@ -15,6 +15,8 @@ object FSMRef {
     def map[B](fn: B => MessageRequest): FSMRef[B] = new Map(this, fn)
 
     def stop(): UIO[Unit] = processingLoop.stop()
+
+    def isStopped(): UIO[Boolean] = processingLoop.isStopped()
   }
 
   class Self[MessageRequest](
